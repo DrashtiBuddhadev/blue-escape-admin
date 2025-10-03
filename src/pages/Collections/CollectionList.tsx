@@ -1,14 +1,20 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Collection } from "../../api/types";
 import { collectionService } from "../../api/services";
 import CollectionCard from "../../components/travel/CollectionCard";
+import EditCollectionModal from "../../components/travel/EditCollectionModal";
+import ViewCollectionModal from "../../components/travel/ViewCollectionModal";
 import PageMeta from "../../components/common/PageMeta";
 import { PlusIcon, GroupIcon } from "../../icons";
 
 const CollectionList: React.FC = () => {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [selectedViewCollection, setSelectedViewCollection] = useState<Collection | null>(null);
 
   useEffect(() => {
     fetchCollections();
@@ -33,6 +39,32 @@ const CollectionList: React.FC = () => {
     } catch (error) {
       console.error('Error deleting collection:', error);
     }
+  };
+
+  const handleEditCollection = (collection: Collection) => {
+    setSelectedCollection(collection);
+    setEditModalOpen(true);
+  };
+
+  const handleViewCollection = (collection: Collection) => {
+    setSelectedViewCollection(collection);
+    setViewModalOpen(true);
+  };
+
+  const handleUpdateCollection = (updatedCollection: Collection) => {
+    setCollections(collections.map(collection =>
+      collection.id === updatedCollection.id ? updatedCollection : collection
+    ));
+  };
+
+  const handleCloseEditModal = () => {
+    setEditModalOpen(false);
+    setSelectedCollection(null);
+  };
+
+  const handleCloseViewModal = () => {
+    setViewModalOpen(false);
+    setSelectedViewCollection(null);
   };
 
   return (
@@ -106,6 +138,8 @@ const CollectionList: React.FC = () => {
                 key={collection.id}
                 collection={collection}
                 onDelete={handleDeleteCollection}
+                onEdit={handleEditCollection}
+                onView={handleViewCollection}
               />
             ))}
           </div>
@@ -118,6 +152,25 @@ const CollectionList: React.FC = () => {
               Showing {collections.length} collection{collections.length !== 1 ? 's' : ''}
             </div>
           </div>
+        )}
+
+        {/* Edit Modal */}
+        {selectedCollection && (
+          <EditCollectionModal
+            collection={selectedCollection}
+            isOpen={editModalOpen}
+            onClose={handleCloseEditModal}
+            onUpdate={handleUpdateCollection}
+          />
+        )}
+
+        {/* View Modal */}
+        {selectedViewCollection && (
+          <ViewCollectionModal
+            collection={selectedViewCollection}
+            isOpen={viewModalOpen}
+            onClose={handleCloseViewModal}
+          />
         )}
       </div>
     </>

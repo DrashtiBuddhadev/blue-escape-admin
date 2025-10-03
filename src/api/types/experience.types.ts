@@ -17,18 +17,20 @@ export interface Experience {
   id: string;
   title: string;
   featured_media?: string;
-  excerpt?: string;
+  taglines?: string[];
   country?: string;
   city?: string;
   region?: string;
   best_time?: BestTime[];
-  carousel_images?: string[]; // Array of 3-8 image URLs
+  carousel_media?: string[];
   brief_description?: string;
   content?: ExperienceContent[];
-  tagline?: Record<string, any>; // JSON field for taglines
   gallery?: GalleryItem[];
   story?: string;
-  tags?: string[]; // Array of tags for categorizing experiences
+  tags?: string[];
+  duration?: number;
+  price?: number;
+  active?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -36,18 +38,20 @@ export interface Experience {
 export interface CreateExperienceRequest {
   title: string;
   featured_media?: string;
-  excerpt?: string;
+  taglines?: string[];
   country?: string;
   city?: string;
   region?: string;
   best_time?: BestTime[];
-  carousel_images?: string[]; // Array of 3-8 image URLs
+  carousel_media?: string[];
   brief_description?: string;
   content?: ExperienceContent[];
-  tagline?: Record<string, any>; // JSON field for taglines
   gallery?: GalleryItem[];
   story?: string;
-  tags?: string[]; // Array of tags for categorizing experiences
+  tags?: string[];
+  duration?: number;
+  price?: number;
+  active?: boolean;
 }
 
 export interface UpdateExperienceRequest extends Partial<CreateExperienceRequest> {}
@@ -57,6 +61,7 @@ export interface ExperienceListParams {
   country?: string;
   city?: string;
   tag?: string;
+  active?: boolean;
 }
 
 export interface ExperienceListResponse {

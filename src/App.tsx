@@ -18,25 +18,36 @@ import Home from "./pages/Dashboard/Home";
 import { BlogList, CreateBlog } from "./pages/Blogs";
 import { CollectionList, CreateCollection, CreateCollectionContent, CollectionDetail } from "./pages/Collections";
 import { ExperienceList, CreateExperience } from "./pages/Experiences";
+import { ContactInquiryList } from "./pages/ContactInquiries";
+import { TagList } from "./pages/Tags";
+import { AuthProvider } from "./auth/AuthContext";
+import ProtectedRoute from "./auth/ProtectedRoute";
 
 export default function App() {
   return (
     <>
-      <Router>
+      <AuthProvider>
+        <Router>
         <ScrollToTop />
         <Routes>
           {/* Dashboard Layout */}
-          <Route element={<AppLayout />}>
+          <Route element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }>
             <Route index path="/" element={<Home />} />
 
             {/* Travel Management */}
             <Route path="/blogs" element={<BlogList />} />
             <Route path="/blogs/create" element={<CreateBlog />} />
+            <Route path="/contact-inquiries" element={<ContactInquiryList />} />
             <Route path="/collections" element={<CollectionList />} />
             <Route path="/collections/create" element={<CreateCollection />} />
             <Route path="/collections/:id" element={<CollectionDetail />} />
             <Route path="/collections/content" element={<CreateCollectionContent />} />
             <Route path="/collections/:collectionId/content/create" element={<CreateCollectionContent />} />
+            <Route path="/tags" element={<TagList />} />
             <Route path="/experiences" element={<ExperienceList />} />
             <Route path="/experiences/create" element={<CreateExperience />} />
 
@@ -69,7 +80,8 @@ export default function App() {
           {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </Router>
+        </Router>
+      </AuthProvider>
     </>
   );
 }

@@ -1,31 +1,66 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Blog, BlogListParams } from "../../api/types";
 import { blogService } from "../../api/services";
 import BlogCard from "../../components/travel/BlogCard";
+import EditBlogModal from "../../components/travel/EditBlogModal";
+import ViewBlogModal from "../../components/travel/ViewBlogModal";
 import PageMeta from "../../components/common/PageMeta";
 import { PlusIcon, GridIcon, ListIcon, DocsIcon } from "../../icons";
+import { getContinents, getCountriesByContinent, getAllCountriesByContinent } from "../../utils/locationUtils";
 
 const BlogList: React.FC = () => {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<BlogListParams>({});
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [selectedViewBlog, setSelectedViewBlog] = useState<Blog | null>(null);
 
-  const regions = ['Asia', 'Europe', 'Americas', 'Africa', 'Oceania'];
-  const countries = ['Thailand', 'Japan', 'France', 'Italy', 'USA', 'Australia'];
+  const [continents] = useState(() => getContinents());
+  const [availableCountries, setAvailableCountries] = useState<{value: string, label: string}[]>([]);
+  const [allCountriesByContinent] = useState(() => getAllCountriesByContinent());
 
   useEffect(() => {
     fetchBlogs();
   }, [filters]);
 
+  useEffect(() => {
+    // Update available countries when region filter changes
+    if (filters.region) {
+      const countries = getCountriesByContinent(filters.region);
+      setAvailableCountries(countries);
+    } else {
+      // Get all countries from all continents
+      const allCountries = Object.values(allCountriesByContinent)
+        .flatMap(continent => continent.countries)
+        .map(country => ({ value: country.name, label: country.name }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+      setAvailableCountries(allCountries);
+    }
+  }, [filters.region, allCountriesByContinent]);
+
   const fetchBlogs = async () => {
     try {
       setLoading(true);
-      const data = await blogService.getBlogs(filters);
-      setBlogs(data);
-    } catch (error) {
+      setError(null);
+      // Only send region filter to API, handle country client-side
+      const apiFilters = { region: filters.region };
+      const data = await blogService.getBlogs(apiFilters);
+
+      // Apply client-side filtering for country (since backend doesn't support it yet)
+      let filteredData = data;
+      if (filters.country) {
+        filteredData = data.filter(blog => blog.country === filters.country);
+      }
+
+      setBlogs(filteredData);
+    } catch (error: any) {
       console.error('Error fetching blogs:', error);
+      setError(error?.message || 'Failed to fetch blogs. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -35,9 +70,45 @@ const BlogList: React.FC = () => {
     try {
       await blogService.deleteBlog(id);
       setBlogs(blogs.filter(blog => blog.id !== id));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting blog:', error);
+      alert(error?.message || 'Failed to delete blog. Please try again.');
     }
+  };
+
+  const handleEditBlog = (blog: Blog) => {
+    setSelectedBlog(blog);
+    setEditModalOpen(true);
+  };
+
+  const handleViewBlog = (blog: Blog) => {
+    setSelectedViewBlog(blog);
+    setViewModalOpen(true);
+  };
+
+  const handleToggleActive = async (id: string, newActiveStatus: boolean) => {
+    try {
+      const updatedBlog = await blogService.updateBlog(id, { active: newActiveStatus });
+      setBlogs(blogs.map(blog => blog.id === id ? updatedBlog : blog));
+    } catch (error: any) {
+      console.error('Error updating blog active status:', error);
+      alert(error?.message || 'Failed to update blog status. Please try again.');
+      throw error; // Re-throw to trigger the BlogCard error handling
+    }
+  };
+
+  const handleUpdateBlog = (updatedBlog: Blog) => {
+    setBlogs(blogs.map(blog => blog.id === updatedBlog.id ? updatedBlog : blog));
+  };
+
+  const handleCloseEditModal = () => {
+    setEditModalOpen(false);
+    setSelectedBlog(null);
+  };
+
+  const handleCloseViewModal = () => {
+    setViewModalOpen(false);
+    setSelectedViewBlog(null);
   };
 
   const handleFilterChange = (key: keyof BlogListParams, value: string) => {
@@ -81,19 +152,19 @@ const BlogList: React.FC = () => {
 
         {/* Filters */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Region
+                Continent
               </label>
               <select
                 value={filters.region || ''}
                 onChange={(e) => handleFilterChange('region', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
-                <option value="">All Regions</option>
-                {regions.map(region => (
-                  <option key={region} value={region}>{region}</option>
+                <option value="">All Continents</option>
+                {continents.map(continent => (
+                  <option key={continent.value} value={continent.value}>{continent.label}</option>
                 ))}
               </select>
             </div>
@@ -108,59 +179,80 @@ const BlogList: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="">All Countries</option>
-                {countries.map(country => (
-                  <option key={country} value={country}>{country}</option>
+                {availableCountries.map(country => (
+                  <option key={country.value} value={country.value}>{country.label}</option>
                 ))}
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                City
+                View
               </label>
-              <input
-                type="text"
-                value={filters.city || ''}
-                onChange={(e) => handleFilterChange('city', e.target.value)}
-                placeholder="Enter city name"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500"
-              />
-            </div>
-
-            <div className="flex items-end space-x-2">
-              <button
-                onClick={clearFilters}
-                className="px-4 py-2 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                Clear
-              </button>
-
-              <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
+              <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 ${viewMode === 'grid'
-                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
+                  onClick={clearFilters}
+                  className="px-4 py-2 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
-                  <GridIcon className="w-4 h-4" />
+                  Clear
                 </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 border-l border-gray-300 dark:border-gray-600 ${viewMode === 'list'
-                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <ListIcon className="w-4 h-4" />
-                </button>
+
+                <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`px-3 py-2 ${viewMode === 'grid'
+                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <GridIcon className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`px-3 py-2 border-l border-gray-300 dark:border-gray-600 ${viewMode === 'list'
+                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <ListIcon className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="text-red-600 dark:text-red-400">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                    Error loading blogs
+                  </h3>
+                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                    {error}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={fetchBlogs}
+                className="ml-4 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Content */}
-        {loading ? (
+        {!error && loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, index) => (
               <div key={index} className="animate-pulse">
@@ -175,7 +267,7 @@ const BlogList: React.FC = () => {
               </div>
             ))}
           </div>
-        ) : blogs.length === 0 ? (
+        ) : !error && blogs.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-gray-400 dark:text-gray-500 mb-4">
               <DocsIcon className="w-16 h-16 mx-auto" />
@@ -194,7 +286,7 @@ const BlogList: React.FC = () => {
               <span>Create Blog</span>
             </Link>
           </div>
-        ) : (
+        ) : !error ? (
           <div className={viewMode === 'grid'
             ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             : "space-y-4"
@@ -204,18 +296,40 @@ const BlogList: React.FC = () => {
                 key={blog.id}
                 blog={blog}
                 onDelete={handleDeleteBlog}
+                onEdit={handleEditBlog}
+                onView={handleViewBlog}
+                onToggleActive={handleToggleActive}
               />
             ))}
           </div>
-        )}
+        ) : null}
 
         {/* Stats */}
-        {!loading && blogs.length > 0 && (
+        {!loading && !error && blogs.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="text-sm text-gray-600 dark:text-gray-400">
               Showing {blogs.length} blog{blogs.length !== 1 ? 's' : ''}
             </div>
           </div>
+        )}
+
+        {/* Edit Modal */}
+        {selectedBlog && (
+          <EditBlogModal
+            blog={selectedBlog}
+            isOpen={editModalOpen}
+            onClose={handleCloseEditModal}
+            onUpdate={handleUpdateBlog}
+          />
+        )}
+
+        {/* View Modal */}
+        {selectedViewBlog && (
+          <ViewBlogModal
+            blog={selectedViewBlog}
+            isOpen={viewModalOpen}
+            onClose={handleCloseViewModal}
+          />
         )}
       </div>
     </>

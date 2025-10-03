@@ -1,6 +1,8 @@
 export * from './blog.types';
 export * from './collection.types';
 export * from './experience.types';
+export * from './contact.types';
+export * from './tag.types';
 
 export interface HealthResponse {
   status: string;

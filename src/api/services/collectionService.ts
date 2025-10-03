@@ -7,32 +7,29 @@ import type {
   CollectionContent,
   CreateCollectionContentRequest,
   UpdateCollectionContentRequest,
-  CollectionListResponse,
-  CollectionResponse,
-  CollectionContentListResponse,
-  CollectionContentResponse,
 } from '../types';
 
 class CollectionService {
   // Collections
   async getCollections(): Promise<Collection[]> {
-    const response = await apiClient.get<CollectionListResponse>(ENDPOINTS.COLLECTIONS);
-    return Array.isArray(response) ? response : response.data || [];
+    return await apiClient.get<Collection[]>(ENDPOINTS.COLLECTIONS);
   }
 
   async getCollectionById(id: string): Promise<Collection> {
-    const response = await apiClient.get<CollectionResponse>(ENDPOINTS.COLLECTION_BY_ID(id));
-    return response.data || response;
+    return await apiClient.get<Collection>(ENDPOINTS.COLLECTION_BY_ID(id));
   }
 
   async createCollection(data: CreateCollectionRequest): Promise<Collection> {
-    const response = await apiClient.post<CollectionResponse>(ENDPOINTS.COLLECTIONS, data);
-    return response.data || response;
+    return await apiClient.post<Collection>(ENDPOINTS.COLLECTIONS, data);
   }
 
   async updateCollection(id: string, data: UpdateCollectionRequest): Promise<Collection> {
-    const response = await apiClient.patch<CollectionResponse>(ENDPOINTS.COLLECTION_BY_ID(id), data);
-    return response.data || response;
+    console.log('CollectionService.updateCollection called with:', {
+      id,
+      endpoint: ENDPOINTS.COLLECTION_BY_ID(id),
+      data: JSON.stringify(data, null, 2)
+    });
+    return await apiClient.patch<Collection>(ENDPOINTS.COLLECTION_BY_ID(id), data);
   }
 
   async deleteCollection(id: string): Promise<void> {
@@ -41,28 +38,28 @@ class CollectionService {
 
   // Collection Content
   async getAllCollectionContents(): Promise<CollectionContent[]> {
-    const response = await apiClient.get<CollectionContentListResponse>(ENDPOINTS.COLLECTION_CONTENT_ALL);
-    return Array.isArray(response) ? response : response.data || [];
+    return await apiClient.get<CollectionContent[]>(ENDPOINTS.COLLECTION_CONTENT_ALL);
   }
 
   async getCollectionContentById(id: string): Promise<CollectionContent> {
-    const response = await apiClient.get<CollectionContentResponse>(ENDPOINTS.COLLECTION_CONTENT_BY_ID(id));
-    return response.data || response;
+    return await apiClient.get<CollectionContent>(ENDPOINTS.COLLECTION_CONTENT_BY_ID(id));
   }
 
   async getContentsByCollection(collectionId: string): Promise<CollectionContent[]> {
-    const response = await apiClient.get<CollectionContentListResponse>(ENDPOINTS.COLLECTION_CONTENTS_BY_COLLECTION(collectionId));
-    return Array.isArray(response) ? response : response.data || [];
+    return await apiClient.get<CollectionContent[]>(ENDPOINTS.COLLECTION_CONTENTS_BY_COLLECTION(collectionId));
   }
 
   async createCollectionContent(data: CreateCollectionContentRequest): Promise<CollectionContent> {
-    const response = await apiClient.post<CollectionContentResponse>(ENDPOINTS.COLLECTION_CONTENT, data);
-    return response.data || response;
+    return await apiClient.post<CollectionContent>(ENDPOINTS.COLLECTION_CONTENT, data);
   }
 
   async updateCollectionContent(id: string, data: UpdateCollectionContentRequest): Promise<CollectionContent> {
-    const response = await apiClient.patch<CollectionContentResponse>(ENDPOINTS.COLLECTION_CONTENT_BY_ID(id), data);
-    return response.data || response;
+    console.log('CollectionService.updateCollectionContent called with:', {
+      id,
+      endpoint: ENDPOINTS.COLLECTION_CONTENT_BY_ID(id),
+      data: JSON.stringify(data, null, 2)
+    });
+    return await apiClient.patch<CollectionContent>(ENDPOINTS.COLLECTION_CONTENT_BY_ID(id), data);
   }
 
   async deleteCollectionContent(id: string): Promise<void> {

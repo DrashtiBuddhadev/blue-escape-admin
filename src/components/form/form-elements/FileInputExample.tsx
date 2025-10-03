@@ -1,3 +1,4 @@
+import React from "react";
 import ComponentCard from "../../common/ComponentCard";
 import FileInput from "../input/FileInput";
 import Label from "../Label";

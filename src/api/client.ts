@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+import apiConfig from './config';
 
 interface ApiError {
   message: string;
@@ -11,31 +12,44 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: 'http://localhost:3000/api/v1',
-      timeout: 10000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      baseURL: apiConfig.BASE_URL,
+      timeout: apiConfig.TIMEOUT,
+      headers: apiConfig.DEFAULT_HEADERS,
     });
 
     this.setupInterceptors();
   }
 
   private setupInterceptors(): void {
+    // Request interceptor - add auth headers
     this.client.interceptors.request.use(
       (config) => {
-        console.log(`Making ${config.method?.toUpperCase()} request to ${config.url}`);
+        // Add authentication headers
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          config.headers = config.headers || {};
+          config.headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        if (apiConfig.ENABLE_LOGGING) {
+          console.log(`Making ${config.method?.toUpperCase()} request to ${config.url}`);
+        }
         return config;
       },
       (error) => {
-        console.error('Request error:', error);
+        if (apiConfig.ENABLE_LOGGING) {
+          console.error('Request error:', error);
+        }
         return Promise.reject(error);
       }
     );
 
+    // Response interceptor - handle auth errors
     this.client.interceptors.response.use(
       (response: AxiosResponse) => {
-        console.log(`Response received:`, response.status);
+        if (apiConfig.ENABLE_LOGGING) {
+          console.log(`Response received:`, response.status);
+        }
         return response;
       },
       (error: AxiosError) => {
@@ -45,7 +59,24 @@ class ApiClient {
           data: error.response?.data,
         };
 
-        console.error('API Error:', apiError);
+        // Handle 401 Unauthorized responses
+        if (error.response?.status === 401) {
+          // Clear auth data
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('authUser');
+
+          // Redirect to login if not already there
+          if (window.location.pathname !== '/signin') {
+            console.log('Session expired. Redirecting to login...');
+            window.location.href = '/signin';
+          }
+
+          apiError.message = 'Session expired. Please login again.';
+        }
+
+        if (apiConfig.ENABLE_LOGGING) {
+          console.error('API Error:', apiError);
+        }
         return Promise.reject(apiError);
       }
     );

@@ -6,10 +6,10 @@ export interface BlogContent {
 export interface Blog {
   id: string;
   title: string;
-  slug?: string;
   featured_media?: string;
   hero_media?: string;
   tags?: string[];
+  tagline?: string[];
   excerpt?: string;
   content: BlogContent[];
   region?: string;
@@ -26,10 +26,10 @@ export interface Blog {
 
 export interface CreateBlogRequest {
   title: string;
-  slug?: string;
   featured_media?: string;
   hero_media?: string;
   tags?: string[];
+  tagline?: string[];
   excerpt?: string;
   content: BlogContent[];
   region?: string;

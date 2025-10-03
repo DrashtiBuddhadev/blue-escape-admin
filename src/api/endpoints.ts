@@ -17,4 +17,11 @@ export const ENDPOINTS = {
   // Experiences
   EXPERIENCES: '/experiences',
   EXPERIENCE_BY_ID: (id: string) => `/experiences/${id}`,
+
+  // Contact Inquiries
+  CONTACT: '/contact',
+
+  // Tags
+  TAGS: '/tags',
+  TAG_BY_ID: (id: string) => `/tags/${id}`,
 } as const;

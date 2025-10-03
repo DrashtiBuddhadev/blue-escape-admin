@@ -70,12 +70,12 @@ const AppHeader: React.FC = () => {
             <img
               className="dark:hidden"
               src="./images/logo/logo.svg"
-              alt="Logo"
+              alt="Blue Escape"
             />
             <img
               className="hidden dark:block"
               src="./images/logo/logo-dark.svg"
-              alt="Logo"
+              alt="Blue Escape"
             />
           </Link>
 

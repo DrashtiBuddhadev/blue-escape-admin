@@ -1,9 +1,10 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { CreateExperienceRequest, BestTime, ExperienceContent, GalleryItem } from "../../api/types";
 import { experienceService } from "../../api/services";
 import PageMeta from "../../components/common/PageMeta";
 import { PlusIcon, TrashBinIcon, ChevronLeftIcon } from "../../icons";
+import { getContinents, getCountriesByContinent, getStatesByCountry, getCitiesByCountry, getCountryCodeByName } from "../../utils/locationUtils";
 
 const CreateExperience: React.FC = () => {
   const navigate = useNavigate();
@@ -11,28 +12,67 @@ const CreateExperience: React.FC = () => {
   const [formData, setFormData] = useState<CreateExperienceRequest>({
     title: "",
     featured_media: "",
-    excerpt: "",
+    taglines: [""],
     country: "",
     city: "",
     region: "",
     best_time: [{ from: "", to: "" }],
-    carousel_images: ["", "", ""], // Initialize with 3 empty images
+    carousel_media: [""],
     brief_description: "",
     content: [{ title: "", content: "" }],
-    tagline: {},
     gallery: [{ name: "", image: "" }],
     story: "",
+    tags: [],
+    duration: undefined,
+    price: undefined,
   });
 
-  const regions = ["Asia", "Europe", "Americas", "Africa", "Oceania"];
-  const countries = ["Thailand", "Japan", "France", "Italy", "USA", "Australia"];
+  const [continents] = useState(() => getContinents());
+  const [availableCountries, setAvailableCountries] = useState<{value: string, label: string, code?: string}[]>([]);
+  const [availableStates, setAvailableStates] = useState<{value: string, label: string, code?: string}[]>([]);
+  const [availableCities, setAvailableCities] = useState<{value: string, label: string}[]>([]);
   const months = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ];
 
+  // Update available countries when region changes
+  useEffect(() => {
+    if (formData.region) {
+      const countries = getCountriesByContinent(formData.region);
+      setAvailableCountries(countries);
+    } else {
+      setAvailableCountries([]);
+    }
+    setAvailableStates([]);
+    setAvailableCities([]);
+  }, [formData.region]);
+
+  // Update available states and cities when country changes
+  useEffect(() => {
+    if (formData.country) {
+      const countryCode = getCountryCodeByName(formData.country);
+      if (countryCode) {
+        const states = getStatesByCountry(countryCode);
+        const cities = getCitiesByCountry(countryCode);
+        setAvailableStates(states);
+        setAvailableCities(cities);
+      }
+    } else {
+      setAvailableStates([]);
+      setAvailableCities([]);
+    }
+  }, [formData.country]);
+
   const handleInputChange = (field: keyof CreateExperienceRequest, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Reset dependent fields when parent location changes
+    if (field === 'region') {
+      setFormData(prev => ({ ...prev, country: '', city: '' }));
+    } else if (field === 'country') {
+      setFormData(prev => ({ ...prev, city: '' }));
+    }
   };
 
   const handleBestTimeChange = (index: number, field: keyof BestTime, value: string) => {
@@ -95,44 +135,58 @@ const CreateExperience: React.FC = () => {
     }
   };
 
-  const handleCarouselImageChange = (index: number, value: string) => {
-    const newCarouselImages = [...formData.carousel_images!];
-    newCarouselImages[index] = value;
-    setFormData(prev => ({ ...prev, carousel_images: newCarouselImages }));
+  const handleCarouselMediaChange = (index: number, value: string) => {
+    const newCarouselMedia = [...(formData.carousel_media || [])];
+    newCarouselMedia[index] = value;
+    setFormData(prev => ({ ...prev, carousel_media: newCarouselMedia }));
   };
 
   const addCarouselImage = () => {
-    if (formData.carousel_images!.length < 8) {
-      setFormData(prev => ({
-        ...prev,
-        carousel_images: [...prev.carousel_images!, ""]
-      }));
-    }
-  };
-
-  const removeCarouselImage = (index: number) => {
-    if (formData.carousel_images!.length > 3) {
-      const newCarouselImages = formData.carousel_images!.filter((_, i) => i !== index);
-      setFormData(prev => ({ ...prev, carousel_images: newCarouselImages }));
-    }
-  };
-
-  const handleTaglineChange = (key: string, value: string) => {
     setFormData(prev => ({
       ...prev,
-      tagline: { ...prev.tagline, [key]: value }
+      carousel_media: [...(prev.carousel_media || []), ""]
     }));
   };
 
-  const addTagline = () => {
-    const key = `tagline_${Object.keys(formData.tagline || {}).length + 1}`;
-    handleTaglineChange(key, "");
+  const removeCarouselImage = (index: number) => {
+    const newCarouselMedia = (formData.carousel_media || []).filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, carousel_media: newCarouselMedia.length > 0 ? newCarouselMedia : [""] }));
   };
 
-  const removeTagline = (key: string) => {
-    const newTagline = { ...formData.tagline };
-    delete newTagline[key];
-    setFormData(prev => ({ ...prev, tagline: newTagline }));
+  const handleTaglineChange = (index: number, value: string) => {
+    const newTaglines = [...(formData.taglines || [])];
+    newTaglines[index] = value;
+    setFormData(prev => ({ ...prev, taglines: newTaglines }));
+  };
+
+  const addTagline = () => {
+    setFormData(prev => ({
+      ...prev,
+      taglines: [...(prev.taglines || []), ""]
+    }));
+  };
+
+  const removeTagline = (index: number) => {
+    const newTaglines = (formData.taglines || []).filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, taglines: newTaglines.length > 0 ? newTaglines : [""] }));
+  };
+
+  const handleTagChange = (index: number, value: string) => {
+    const newTags = [...(formData.tags || [])];
+    newTags[index] = value;
+    setFormData(prev => ({ ...prev, tags: newTags }));
+  };
+
+  const addTag = () => {
+    setFormData(prev => ({
+      ...prev,
+      tags: [...(prev.tags || []), ""]
+    }));
+  };
+
+  const removeTag = (index: number) => {
+    const newTags = (formData.tags || []).filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, tags: newTags.length > 0 ? newTags : [] }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -144,8 +198,17 @@ const CreateExperience: React.FC = () => {
 
     setLoading(true);
     try {
-      const experience = await experienceService.createExperience(formData);
-      navigate(`/experiences/${experience.id}`);
+      // Filter out empty carousel media URLs, taglines, and tags before submitting
+      const submitData = {
+        ...formData,
+        carousel_media: formData.carousel_media?.filter(url => url.trim() !== "") || [],
+        taglines: formData.taglines?.filter(tagline => tagline.trim() !== "") || [],
+        tags: formData.tags?.filter(tag => tag.trim() !== "") || []
+      };
+
+      await experienceService.createExperience(submitData);
+      alert("Experience created successfully!");
+      navigate("/experiences");
     } catch (error) {
       console.error("Error creating experience:", error);
       alert("Failed to create experience. Please try again.");
@@ -201,7 +264,7 @@ const CreateExperience: React.FC = () => {
                     <input
                       type="text"
                       value={formData.title}
-                      onChange={(e) => handleInputChange("title", e.target.value)}
+                      onChange={(e: any) => handleInputChange("title", e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       placeholder="e.g., Island Hopping in Phi Phi"
                       required
@@ -209,16 +272,48 @@ const CreateExperience: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Excerpt
-                    </label>
-                    <textarea
-                      value={formData.excerpt}
-                      onChange={(e) => handleInputChange("excerpt", e.target.value)}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="Brief description of the experience"
-                    />
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Taglines
+                      </label>
+                      <button
+                        type="button"
+                        onClick={addTagline}
+                        className="inline-flex items-center space-x-1 px-2 py-1 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors"
+                      >
+                        <PlusIcon className="w-3 h-3" />
+                        <span>Add Tagline</span>
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {(formData.taglines || []).map((tagline, index) => (
+                        <div key={index} className="flex space-x-2">
+                          <input
+                            type="text"
+                            value={tagline}
+                            onChange={(e: any) => handleTaglineChange(index, e.target.value)}
+                            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            placeholder={`Tagline ${index + 1}: e.g., "Explore the world", "Adventure awaits"`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeTagline(index)}
+                            className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                            title="Remove tagline"
+                          >
+                            <TrashBinIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                      {(!formData.taglines || formData.taglines.length === 0) && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                          No taglines added yet. Click "Add Tagline" to get started.
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      Add compelling taglines for the experience (comma-separated phrases)
+                    </p>
                   </div>
 
                   <div>
@@ -227,7 +322,7 @@ const CreateExperience: React.FC = () => {
                     </label>
                     <textarea
                       value={formData.brief_description}
-                      onChange={(e) => handleInputChange("brief_description", e.target.value)}
+                      onChange={(e: any) => handleInputChange("brief_description", e.target.value)}
                       rows={2}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       placeholder="Short overview of what this experience offers"
@@ -240,7 +335,7 @@ const CreateExperience: React.FC = () => {
                     </label>
                     <textarea
                       value={formData.story}
-                      onChange={(e) => handleInputChange("story", e.target.value)}
+                      onChange={(e: any) => handleInputChange("story", e.target.value)}
                       rows={6}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       placeholder="Tell the full story of this experience"
@@ -290,7 +385,7 @@ const CreateExperience: React.FC = () => {
                           </label>
                           <select
                             value={period.from}
-                            onChange={(e) => handleBestTimeChange(index, "from", e.target.value)}
+                            onChange={(e: any) => handleBestTimeChange(index, "from", e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                           >
                             <option value="">Select month</option>
@@ -306,7 +401,7 @@ const CreateExperience: React.FC = () => {
                           </label>
                           <select
                             value={period.to}
-                            onChange={(e) => handleBestTimeChange(index, "to", e.target.value)}
+                            onChange={(e: any) => handleBestTimeChange(index, "to", e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                           >
                             <option value="">Select month</option>
@@ -363,7 +458,7 @@ const CreateExperience: React.FC = () => {
                           <input
                             type="text"
                             value={section.title}
-                            onChange={(e) => handleContentChange(index, "title", e.target.value)}
+                            onChange={(e: any) => handleContentChange(index, "title", e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             placeholder="e.g., Activities, What's Included"
                           />
@@ -375,7 +470,7 @@ const CreateExperience: React.FC = () => {
                           </label>
                           <textarea
                             value={section.content}
-                            onChange={(e) => handleContentChange(index, "content", e.target.value)}
+                            onChange={(e: any) => handleContentChange(index, "content", e.target.value)}
                             rows={4}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             placeholder="Section content"
@@ -429,7 +524,7 @@ const CreateExperience: React.FC = () => {
                           <input
                             type="text"
                             value={item.name}
-                            onChange={(e) => handleGalleryChange(index, "name", e.target.value)}
+                            onChange={(e: any) => handleGalleryChange(index, "name", e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             placeholder="e.g., Sunset View, Beach Scene"
                           />
@@ -442,7 +537,7 @@ const CreateExperience: React.FC = () => {
                           <input
                             type="url"
                             value={item.image}
-                            onChange={(e) => handleGalleryChange(index, "image", e.target.value)}
+                            onChange={(e: any) => handleGalleryChange(index, "image", e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             placeholder="https://example.com/photo.jpg"
                           />
@@ -470,7 +565,7 @@ const CreateExperience: React.FC = () => {
                     <input
                       type="url"
                       value={formData.featured_media}
-                      onChange={(e) => handleInputChange("featured_media", e.target.value)}
+                      onChange={(e: any) => handleInputChange("featured_media", e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       placeholder="https://example.com/featured.jpg"
                     />
@@ -479,42 +574,45 @@ const CreateExperience: React.FC = () => {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Carousel Images (3-8 images)
+                        Carousel Media URLs
                       </label>
-                      {formData.carousel_images!.length < 8 && (
-                        <button
-                          type="button"
-                          onClick={addCarouselImage}
-                          className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-                        >
-                          + Add Image
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={addCarouselImage}
+                        className="inline-flex items-center space-x-1 px-2 py-1 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors"
+                      >
+                        <PlusIcon className="w-3 h-3" />
+                        <span>Add Image</span>
+                      </button>
                     </div>
-                    <div className="space-y-3">
-                      {formData.carousel_images?.map((imageUrl, index) => (
-                        <div key={index} className="flex items-center space-x-2">
+                    <div className="space-y-2">
+                      {(formData.carousel_media || []).map((imageUrl, index) => (
+                        <div key={index} className="flex space-x-2">
                           <input
                             type="url"
                             value={imageUrl}
-                            onChange={(e) => handleCarouselImageChange(index, e.target.value)}
+                            onChange={(e: any) => handleCarouselMediaChange(index, e.target.value)}
                             className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder={`Carousel image ${index + 1} URL`}
+                            placeholder={`https://example.com/carousel-${index + 1}.jpg`}
                           />
-                          {formData.carousel_images!.length > 3 && (
-                            <button
-                              type="button"
-                              onClick={() => removeCarouselImage(index)}
-                              className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                            >
-                              <TrashBinIcon className="w-4 h-4" />
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeCarouselImage(index)}
+                            className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                            title="Remove image"
+                          >
+                            <TrashBinIcon className="w-4 h-4" />
+                          </button>
                         </div>
                       ))}
+                      {(!formData.carousel_media || formData.carousel_media.length === 0) && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                          No carousel images added yet. Click "Add Image" to get started.
+                        </p>
+                      )}
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      Add 3-8 images for the carousel display
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      Add multiple images for the carousel display
                     </p>
                   </div>
                 </div>
@@ -533,12 +631,12 @@ const CreateExperience: React.FC = () => {
                     </label>
                     <select
                       value={formData.region}
-                      onChange={(e) => handleInputChange("region", e.target.value)}
+                      onChange={(e: any) => handleInputChange("region", e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     >
                       <option value="">Select Region</option>
-                      {regions.map(region => (
-                        <option key={region} value={region}>{region}</option>
+                      {continents.map(continent => (
+                        <option key={continent.value} value={continent.value}>{continent.label}</option>
                       ))}
                     </select>
                   </div>
@@ -549,12 +647,13 @@ const CreateExperience: React.FC = () => {
                     </label>
                     <select
                       value={formData.country}
-                      onChange={(e) => handleInputChange("country", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      onChange={(e: any) => handleInputChange("country", e.target.value)}
+                      disabled={!formData.region}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <option value="">Select Country</option>
-                      {countries.map(country => (
-                        <option key={country} value={country}>{country}</option>
+                      <option value="">{!formData.region ? "Select Region First" : "Select Country"}</option>
+                      {availableCountries.map(country => (
+                        <option key={country.value} value={country.value}>{country.label}</option>
                       ))}
                     </select>
                   </div>
@@ -563,61 +662,103 @@ const CreateExperience: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       City
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={formData.city}
-                      onChange={(e) => handleInputChange("city", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="Enter city name"
-                    />
+                      onChange={(e: any) => handleInputChange("city", e.target.value)}
+                      disabled={!formData.country}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="">{!formData.country ? "Select Country First" : "Select City"}</option>
+                      {availableCities.map(city => (
+                        <option key={city.value} value={city.value}>{city.label}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
 
-              {/* Taglines */}
+              {/* Additional Details */}
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Taglines
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={addTagline}
-                    className="inline-flex items-center space-x-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm"
-                  >
-                    <PlusIcon className="w-4 h-4" />
-                    <span>Add Tagline</span>
-                  </button>
-                </div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  Additional Details
+                </h2>
 
-                <div className="space-y-3">
-                  {Object.entries(formData.tagline || {}).map(([key, value]) => (
-                    <div key={key} className="flex items-center space-x-2">
-                      <input
-                        type="text"
-                        value={value as string}
-                        onChange={(e) => handleTaglineChange(key, e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        placeholder="Enter tagline"
-                      />
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Tags
+                      </label>
                       <button
                         type="button"
-                        onClick={() => removeTagline(key)}
-                        className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                        onClick={addTag}
+                        className="inline-flex items-center space-x-1 px-2 py-1 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors"
                       >
-                        <TrashBinIcon className="w-4 h-4" />
+                        <PlusIcon className="w-3 h-3" />
+                        <span>Add Tag</span>
                       </button>
                     </div>
-                  ))}
-                  {Object.keys(formData.tagline || {}).length === 0 && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                      No taglines added yet. Click "Add Tagline" to add one.
+                    <div className="space-y-2">
+                      {(formData.tags || []).map((tag, index) => (
+                        <div key={index} className="flex space-x-2">
+                          <input
+                            type="text"
+                            value={tag}
+                            onChange={(e: any) => handleTagChange(index, e.target.value)}
+                            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            placeholder={`Tag ${index + 1}: e.g., "adventure travel", "cultural experience"`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeTag(index)}
+                            className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                            title="Remove tag"
+                          >
+                            <TrashBinIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                      {(!formData.tags || formData.tags.length === 0) && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                          No tags added yet. Click "Add Tag" to get started.
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      Add tags for better categorization. Each tag can contain spaces.
                     </p>
-                  )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Duration (days)
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={formData.duration || ""}
+                        onChange={(e: any) => handleInputChange("duration", e.target.value ? parseInt(e.target.value) : undefined)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="e.g., 12"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Price (₹)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.price || ""}
+                        onChange={(e: any) => handleInputChange("price", e.target.value ? parseInt(e.target.value) : undefined)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="e.g., 450000"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  Add catchy taglines to highlight the experience
-                </p>
               </div>
 
               {/* Actions */}

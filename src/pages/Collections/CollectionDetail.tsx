@@ -2,14 +2,14 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router";
 import { Collection, CollectionContent } from "../../api/types";
 import { collectionService } from "../../api/services";
+import LocationContentCard from "../../components/travel/LocationContentCard";
+import EditCollectionContentModal from "../../components/travel/EditCollectionContentModal";
+import ViewCollectionContentModal from "../../components/travel/ViewCollectionContentModal";
 import PageMeta from "../../components/common/PageMeta";
 import {
   PlusIcon,
   ChevronLeftIcon,
   LocationIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashBinIcon,
   GroupIcon
 } from "../../icons";
 
@@ -20,6 +20,10 @@ const CollectionDetail: React.FC = () => {
   const [collectionContents, setCollectionContents] = useState<CollectionContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [contentLoading, setContentLoading] = useState(true);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedContent, setSelectedContent] = useState<CollectionContent | null>(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [selectedViewContent, setSelectedViewContent] = useState<CollectionContent | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -44,6 +48,7 @@ const CollectionDetail: React.FC = () => {
     try {
       setContentLoading(true);
       const contents = await collectionService.getContentsByCollection(id!);
+      console.log('Collection contents:', contents);
       setCollectionContents(contents);
     } catch (error) {
       console.error('Error fetching collection contents:', error);
@@ -53,14 +58,57 @@ const CollectionDetail: React.FC = () => {
   };
 
   const handleDeleteContent = async (contentId: string) => {
-    if (window.confirm("Are you sure you want to delete this location content?")) {
-      try {
-        await collectionService.deleteCollectionContent(contentId);
-        setCollectionContents(prev => prev.filter(content => content.id !== contentId));
-      } catch (error) {
-        console.error('Error deleting collection content:', error);
-      }
+    try {
+      await collectionService.deleteCollectionContent(contentId);
+      setCollectionContents(prev => prev.filter(content => content.id !== contentId));
+    } catch (error) {
+      console.error('Error deleting collection content:', error);
+      alert('Failed to delete location content. Please try again.');
     }
+  };
+
+  const handleEditContent = (content: CollectionContent) => {
+    console.log('handleEditContent called with:', content);
+    setSelectedContent(content);
+    setEditModalOpen(true);
+    console.log('Edit modal should be opening...');
+  };
+
+  const handleViewContent = (content: CollectionContent) => {
+    setSelectedViewContent(content);
+    setViewModalOpen(true);
+  };
+
+  const handleToggleContentActive = async (contentId: string, newActiveStatus: boolean) => {
+    try {
+      console.log('Toggling collection content active status:', { contentId, newActiveStatus });
+      const updatedContent = await collectionService.updateCollectionContent(contentId, { active: newActiveStatus });
+      console.log('Update response:', updatedContent);
+      setCollectionContents(collectionContents.map(content => content.id === contentId ? updatedContent : content));
+    } catch (error: any) {
+      console.error('Error updating collection content active status:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        status: error?.status,
+        data: error?.data
+      });
+      alert(error?.message || 'Failed to update content status. Please try again.');
+      throw error; // Re-throw to trigger the LocationContentCard error handling
+    }
+  };
+
+  const handleUpdateContent = (updatedContent: CollectionContent) => {
+    setCollectionContents(collectionContents.map(content => content.id === updatedContent.id ? updatedContent : content));
+  };
+
+  const handleCloseEditModal = () => {
+    setEditModalOpen(false);
+    setSelectedContent(null);
+  };
+
+  const handleCloseViewModal = () => {
+    setViewModalOpen(false);
+    setSelectedViewContent(null);
   };
 
   const formatDate = (dateString: string) => {
@@ -71,13 +119,6 @@ const CollectionDetail: React.FC = () => {
     });
   };
 
-  const getLocationLabel = (content: CollectionContent) => {
-    const parts = [];
-    if (content.city) parts.push(content.city);
-    if (content.country) parts.push(content.country);
-    if (content.region && parts.length === 0) parts.push(content.region);
-    return parts.length > 0 ? parts.join(', ') : 'Location not specified';
-  };
 
   if (loading) {
     return (
@@ -214,79 +255,37 @@ const CollectionDetail: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {collectionContents.map((content) => (
-                <div
+                <LocationContentCard
                   key={content.id}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-start space-x-3 flex-1">
-                      <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                        <LocationIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-                          {collection.name}
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {getLocationLabel(content)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {content.about_collection && (
-                      <div>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">
-                          {content.about_collection}
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center space-x-1">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          content.active
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                        }`}>
-                          {content.active ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <button
-                          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
-                          title="View Content"
-                        >
-                          <EyeIcon className="w-4 h-4" />
-                        </button>
-                        <Link
-                          to={`/collections/${collection.id}/content/${content.id}/edit`}
-                          className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded transition-colors"
-                          title="Edit Content"
-                        >
-                          <PencilIcon className="w-4 h-4" />
-                        </Link>
-                        <button
-                          onClick={() => handleDeleteContent(content.id)}
-                          className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                          title="Delete Content"
-                        >
-                          <TrashBinIcon className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      Created {formatDate(content.created_at)}
-                    </div>
-                  </div>
-                </div>
+                  content={content}
+                  onEdit={handleEditContent}
+                  onView={handleViewContent}
+                  onDelete={handleDeleteContent}
+                  onToggleActive={handleToggleContentActive}
+                />
               ))}
             </div>
           )}
         </div>
+
+        {/* Edit Content Modal */}
+        {selectedContent && (
+          <EditCollectionContentModal
+            content={selectedContent}
+            isOpen={editModalOpen}
+            onClose={handleCloseEditModal}
+            onUpdate={handleUpdateContent}
+          />
+        )}
+
+        {/* View Content Modal */}
+        {selectedViewContent && (
+          <ViewCollectionContentModal
+            content={selectedViewContent}
+            isOpen={viewModalOpen}
+            onClose={handleCloseViewModal}
+          />
+        )}
       </div>
     </>
   );

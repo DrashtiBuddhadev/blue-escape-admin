@@ -9,6 +9,8 @@ import {
   UserCircleIcon,
   GroupIcon,
   DocsIcon,
+  MailIcon,
+  TagIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
@@ -32,9 +34,19 @@ const navItems: NavItem[] = [
     path: "/blogs",
   },
   {
+    icon: <MailIcon />,
+    name: "Contact Inquiries",
+    path: "/contact-inquiries",
+  },
+  {
     icon: <GroupIcon />,
     name: "Collections",
     path: "/collections",
+  },
+  {
+    icon: <TagIcon />,
+    name: "Tags",
+    path: "/tags",
   },
   {
     icon: <BoxCubeIcon />,

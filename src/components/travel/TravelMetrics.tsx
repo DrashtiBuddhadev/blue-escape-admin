@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { DocsIcon, GroupIcon, BoxCubeIcon, PieChartIcon } from "../../icons";
+import React, { useState, useEffect } from "react";
+import { DocsIcon, GroupIcon, BoxCubeIcon, TagIcon } from "../../icons";
+import { blogService, collectionService, experienceService, tagService } from "../../api/services";
 
 interface MetricData {
   title: string;
@@ -19,7 +20,7 @@ const TravelMetrics = () => {
       bgColor: "bg-blue-100",
     },
     {
-      title: "Collections",
+      title: "Collection Content",
       value: 0,
       icon: <GroupIcon />,
       color: "text-green-600",
@@ -33,24 +34,30 @@ const TravelMetrics = () => {
       bgColor: "bg-purple-100",
     },
     {
-      title: "Published Content",
+      title: "Tags",
       value: 0,
-      icon: <PieChartIcon />,
+      icon: <TagIcon />,
       color: "text-orange-600",
       bgColor: "bg-orange-100",
     },
   ]);
 
   useEffect(() => {
-    // TODO: Replace with actual API calls
     const fetchMetrics = async () => {
       try {
-        // Simulate API calls
+        // Fetch real counts from API services
+        const [blogs, collectionContents, experiences, tags] = await Promise.all([
+          blogService.getBlogs({}),
+          collectionService.getAllCollectionContents(),
+          experienceService.getExperiences({}),
+          tagService.getTags()
+        ]);
+
         setMetrics(prev => [
-          { ...prev[0], value: 25 },
-          { ...prev[1], value: 8 },
-          { ...prev[2], value: 42 },
-          { ...prev[3], value: 68 },
+          { ...prev[0], value: blogs.length },
+          { ...prev[1], value: collectionContents.length },
+          { ...prev[2], value: experiences.length },
+          { ...prev[3], value: tags.length },
         ]);
       } catch (error) {
         console.error("Error fetching metrics:", error);

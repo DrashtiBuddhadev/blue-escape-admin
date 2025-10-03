@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { CreateCollectionContentRequest, Collection, Feature, AboutDestination } from "../../api/types";
-import { collectionService } from "../../api/services";
+import { CreateCollectionContentRequest, Collection, Feature, AboutDestination, AboutDestinationBackend, Tag } from "../../api/types";
+import { collectionService, tagService } from "../../api/services";
 import PageMeta from "../../components/common/PageMeta";
 import { PlusIcon, TrashBinIcon, ChevronLeftIcon } from "../../icons";
+import { getContinents, getCountriesByContinent, getCitiesByCountry, getCountryCodeByName } from "../../utils/locationUtils";
 
 const CreateCollectionContent: React.FC = () => {
   const navigate = useNavigate();
@@ -11,79 +12,39 @@ const CreateCollectionContent: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
-  const [formData, setFormData] = useState<CreateCollectionContentRequest>({
+  const [formData, setFormData] = useState<CreateCollectionContentRequest & { about_destination_description?: string }>({
     collection_id: collectionId || "",
+    property_name: "",
+    featured_img: "",
     hero_media: "",
     about_collection: "",
-    features: [{ title: "", content: "", images: ["", ""] }],
-    about_destination: [{ title: "", content: "" }],
+    features: [{ title: "", content: "", images: { media: [""] } }],
+    about_destination_description: "",
     region: "",
     country: "",
     city: "",
     active: true,
   });
 
-  const regions = ["Asia", "Europe", "Americas", "Africa", "Oceania"];
-
-  const locationData = {
-    Asia: {
-      countries: {
-        Thailand: ["Bangkok", "Phuket", "Chiang Mai", "Koh Samui", "Pattaya"],
-        Japan: ["Tokyo", "Kyoto", "Osaka", "Hiroshima", "Nara"],
-        Malaysia: ["Kuala Lumpur", "Penang", "Langkawi", "Malacca"],
-        Singapore: ["Singapore"],
-        India: ["Mumbai", "Delhi", "Goa", "Jaipur", "Udaipur", "Kerala"],
-        Indonesia: ["Bali", "Jakarta", "Yogyakarta", "Lombok"]
-      }
-    },
-    Europe: {
-      countries: {
-        France: ["Paris", "Nice", "Lyon", "Marseille", "Cannes"],
-        Italy: ["Rome", "Florence", "Venice", "Milan", "Naples"],
-        Spain: ["Madrid", "Barcelona", "Seville", "Valencia"],
-        Germany: ["Berlin", "Munich", "Frankfurt", "Hamburg"],
-        Netherlands: ["Amsterdam", "Rotterdam", "The Hague"],
-        "United Kingdom": ["London", "Edinburgh", "Manchester", "Liverpool"]
-      }
-    },
-    Americas: {
-      countries: {
-        "United States": ["New York", "Los Angeles", "Chicago", "Miami", "Las Vegas"],
-        Canada: ["Toronto", "Vancouver", "Montreal", "Calgary"],
-        Mexico: ["Mexico City", "Cancun", "Playa del Carmen", "Puerto Vallarta"],
-        Brazil: ["Rio de Janeiro", "São Paulo", "Salvador", "Brasília"]
-      }
-    },
-    Africa: {
-      countries: {
-        "South Africa": ["Cape Town", "Johannesburg", "Durban", "Port Elizabeth"],
-        Egypt: ["Cairo", "Alexandria", "Luxor", "Aswan"],
-        Morocco: ["Marrakech", "Casablanca", "Fez", "Rabat"],
-        Kenya: ["Nairobi", "Mombasa", "Kisumu"]
-      }
-    },
-    Oceania: {
-      countries: {
-        Australia: ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide"],
-        "New Zealand": ["Auckland", "Wellington", "Christchurch", "Queenstown"]
-      }
-    }
-  };
-
-  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
-  const [availableCities, setAvailableCities] = useState<string[]>([]);
+  const [continents] = useState(() => getContinents());
+  const [availableCountries, setAvailableCountries] = useState<{value: string, label: string, code?: string}[]>([]);
+  const [availableCities, setAvailableCities] = useState<{value: string, label: string}[]>([]);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   useEffect(() => {
     fetchCollections();
+    fetchTags();
   }, []);
 
   useEffect(() => {
     // Update available countries when region changes
-    if (formData.region && locationData[formData.region as keyof typeof locationData]) {
-      const countries = Object.keys(locationData[formData.region as keyof typeof locationData].countries);
+    if (formData.region) {
+      const countries = getCountriesByContinent(formData.region);
       setAvailableCountries(countries);
       // Reset country and city if current country is not in new region
-      if (!countries.includes(formData.country)) {
+      const countryNames = countries.map(c => c.value);
+      if (!countryNames.includes(formData.country || "")) {
         setFormData(prev => ({ ...prev, country: "", city: "" }));
         setAvailableCities([]);
       }
@@ -95,13 +56,16 @@ const CreateCollectionContent: React.FC = () => {
 
   useEffect(() => {
     // Update available cities when country changes
-    if (formData.region && formData.country && locationData[formData.region as keyof typeof locationData]) {
-      const regionData = locationData[formData.region as keyof typeof locationData];
-      const cities = regionData.countries[formData.country as keyof typeof regionData.countries] || [];
-      setAvailableCities(cities);
-      // Reset city if current city is not in new country
-      if (!cities.includes(formData.city)) {
-        setFormData(prev => ({ ...prev, city: "" }));
+    if (formData.country) {
+      const countryCode = getCountryCodeByName(formData.country);
+      if (countryCode) {
+        const cities = getCitiesByCountry(countryCode);
+        setAvailableCities(cities);
+        // Reset city if current city is not in new country
+        const cityNames = cities.map(c => c.value);
+        if (!cityNames.includes(formData.city || "")) {
+          setFormData(prev => ({ ...prev, city: "" }));
+        }
       }
     } else {
       setAvailableCities([]);
@@ -125,6 +89,15 @@ const CreateCollectionContent: React.FC = () => {
     }
   };
 
+  const fetchTags = async () => {
+    try {
+      const data = await tagService.getTags();
+      setAvailableTags(data);
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+    }
+  };
+
   const handleInputChange = (field: keyof CreateCollectionContentRequest, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -137,32 +110,39 @@ const CreateCollectionContent: React.FC = () => {
 
   const handleFeatureImageChange = (featureIndex: number, imageIndex: number, value: string) => {
     const newFeatures = [...formData.features!];
-    const newImages = [...newFeatures[featureIndex].images];
+    const newImages = [...(newFeatures[featureIndex].images?.media || [])];
     newImages[imageIndex] = value;
-    newFeatures[featureIndex] = { ...newFeatures[featureIndex], images: newImages };
+    newFeatures[featureIndex] = {
+      ...newFeatures[featureIndex],
+      images: { media: newImages }
+    };
     setFormData(prev => ({ ...prev, features: newFeatures }));
   };
 
   const addFeatureImage = (featureIndex: number) => {
     const newFeatures = [...formData.features!];
-    if (newFeatures[featureIndex].images.length < 5) {
-      newFeatures[featureIndex].images.push("");
-      setFormData(prev => ({ ...prev, features: newFeatures }));
-    }
+    newFeatures[featureIndex] = {
+      ...newFeatures[featureIndex],
+      images: { media: [...(newFeatures[featureIndex].images?.media || []), ""] }
+    };
+    setFormData(prev => ({ ...prev, features: newFeatures }));
   };
 
   const removeFeatureImage = (featureIndex: number, imageIndex: number) => {
     const newFeatures = [...formData.features!];
-    if (newFeatures[featureIndex].images.length > 2) {
-      newFeatures[featureIndex].images.splice(imageIndex, 1);
-      setFormData(prev => ({ ...prev, features: newFeatures }));
-    }
+    const newImages = [...(newFeatures[featureIndex].images?.media || [])];
+    newImages.splice(imageIndex, 1);
+    newFeatures[featureIndex] = {
+      ...newFeatures[featureIndex],
+      images: { media: newImages }
+    };
+    setFormData(prev => ({ ...prev, features: newFeatures }));
   };
 
   const addFeature = () => {
     setFormData(prev => ({
       ...prev,
-      features: [...(prev.features || []), { title: "", content: "", images: ["", ""] }]
+      features: [...(prev.features || []), { title: "", content: "", images: { media: [""] } }]
     }));
   };
 
@@ -173,24 +153,18 @@ const CreateCollectionContent: React.FC = () => {
     }
   };
 
-  const handleAboutDestinationChange = (index: number, field: keyof AboutDestination, value: string) => {
-    const newAboutDestination = [...formData.about_destination!];
-    newAboutDestination[index] = { ...newAboutDestination[index], [field]: value };
-    setFormData(prev => ({ ...prev, about_destination: newAboutDestination }));
+  const handleAboutDestinationChange = (value: string) => {
+    setFormData(prev => ({ ...prev, about_destination_description: value }));
   };
 
-  const addAboutDestination = () => {
-    setFormData(prev => ({
-      ...prev,
-      about_destination: [...(prev.about_destination || []), { title: "", content: "" }]
-    }));
-  };
-
-  const removeAboutDestination = (index: number) => {
-    if (formData.about_destination!.length > 1) {
-      const newAboutDestination = formData.about_destination!.filter((_, i) => i !== index);
-      setFormData(prev => ({ ...prev, about_destination: newAboutDestination }));
-    }
+  const handleTagToggle = (tagName: string) => {
+    setSelectedTags(prev => {
+      if (prev.includes(tagName)) {
+        return prev.filter(t => t !== tagName);
+      } else {
+        return [...prev, tagName];
+      }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -202,7 +176,27 @@ const CreateCollectionContent: React.FC = () => {
 
     setLoading(true);
     try {
-      await collectionService.createCollectionContent(formData);
+      // Transform the data to match backend format
+      const submitData: CreateCollectionContentRequest = {
+        collection_id: formData.collection_id,
+        property_name: formData.property_name,
+        featured_img: formData.featured_img,
+        hero_media: formData.hero_media,
+        about_collection: formData.about_collection,
+        features: formData.features,
+        about_destination: formData.about_destination_description
+          ? {
+              description: formData.about_destination_description
+            }
+          : undefined,
+        region: formData.region,
+        country: formData.country,
+        city: formData.city,
+        tags: selectedTags.length > 0 ? selectedTags : undefined,
+        active: formData.active,
+      };
+
+      await collectionService.createCollectionContent(submitData);
       navigate(`/collections/${formData.collection_id}`);
     } catch (error) {
       console.error("Error creating collection content:", error);
@@ -277,6 +271,21 @@ const CreateCollectionContent: React.FC = () => {
                     </select>
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Property Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.property_name}
+                      onChange={(e) => handleInputChange("property_name", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="e.g., Amankora, Amanzoe, Amanruya"
+                    />
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      Specific property name under this collection (optional)
+                    </p>
+                  </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -357,33 +366,34 @@ const CreateCollectionContent: React.FC = () => {
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Feature Images (2-5 images)
+                              Feature Images (1-5 images)
                             </label>
-                            {feature.images.length < 5 && (
+                            {feature.images.media.length < 5 && (
                               <button
                                 type="button"
                                 onClick={() => addFeatureImage(index)}
-                                className="text-sm text-green-600 hover:text-green-700 font-medium"
+                                className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 text-sm font-medium flex items-center space-x-1"
                               >
-                                + Add Image
+                                <PlusIcon className="w-4 h-4" />
+                                <span>Add Image</span>
                               </button>
                             )}
                           </div>
                           <div className="space-y-3">
-                            {feature.images.map((imageUrl, imageIndex) => (
-                              <div key={imageIndex} className="flex items-center space-x-2">
+                            {feature.images.media.map((imageUrl, imgIndex) => (
+                              <div key={imgIndex} className="flex items-center space-x-2">
                                 <input
                                   type="url"
                                   value={imageUrl}
-                                  onChange={(e) => handleFeatureImageChange(index, imageIndex, e.target.value)}
+                                  onChange={(e) => handleFeatureImageChange(index, imgIndex, e.target.value)}
                                   className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                  placeholder={`Image ${imageIndex + 1} URL`}
+                                  placeholder={`Feature image URL ${imgIndex + 1}`}
                                 />
-                                {feature.images.length > 2 && (
+                                {feature.images.media.length > 1 && (
                                   <button
                                     type="button"
-                                    onClick={() => removeFeatureImage(index, imageIndex)}
-                                    className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                                    onClick={() => removeFeatureImage(index, imgIndex)}
+                                    className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                   >
                                     <TrashBinIcon className="w-4 h-4" />
                                   </button>
@@ -392,7 +402,7 @@ const CreateCollectionContent: React.FC = () => {
                             ))}
                           </div>
                           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            Add 2-5 images to showcase this feature
+                            Add 1-5 images to showcase this feature
                           </p>
                         </div>
                       </div>
@@ -403,67 +413,24 @@ const CreateCollectionContent: React.FC = () => {
 
               {/* About Destination */}
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    About Destination
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={addAboutDestination}
-                    className="inline-flex items-center space-x-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-                  >
-                    <PlusIcon className="w-4 h-4" />
-                    <span>Add Section</span>
-                  </button>
-                </div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  About Destination
+                </h2>
 
-                <div className="space-y-6">
-                  {formData.about_destination?.map((section, index) => (
-                    <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-medium text-gray-900 dark:text-white">
-                          Section {index + 1}
-                        </h3>
-                        {formData.about_destination!.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeAboutDestination(index)}
-                            className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                          >
-                            <TrashBinIcon className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Section Title
-                          </label>
-                          <input
-                            type="text"
-                            value={section.title}
-                            onChange={(e) => handleAboutDestinationChange(index, "title", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            placeholder="e.g., History, Culture, Climate"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Content
-                          </label>
-                          <textarea
-                            value={section.content}
-                            onChange={(e) => handleAboutDestinationChange(index, "content", e.target.value)}
-                            rows={4}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            placeholder="Detailed information about this aspect of the destination"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Destination Description
+                  </label>
+                  <textarea
+                    value={formData.about_destination_description || ""}
+                    onChange={(e) => handleAboutDestinationChange(e.target.value)}
+                    rows={6}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="Describe this destination, its culture, attractions, and what makes it special..."
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Provide a comprehensive description of the destination that will help users understand what makes this location unique.
+                  </p>
                 </div>
               </div>
             </div>
@@ -476,20 +443,38 @@ const CreateCollectionContent: React.FC = () => {
                   Media
                 </h2>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Hero Image URL
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.hero_media}
-                    onChange={(e) => handleInputChange("hero_media", e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="https://example.com/hero.jpg"
-                  />
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Main hero image for the collection content
-                  </p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Featured Image URL
+                    </label>
+                    <input
+                      type="url"
+                      value={formData.featured_img}
+                      onChange={(e) => handleInputChange("featured_img", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="https://example.com/featured.jpg"
+                    />
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      Featured image for card display
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Hero Image URL
+                    </label>
+                    <input
+                      type="url"
+                      value={formData.hero_media}
+                      onChange={(e) => handleInputChange("hero_media", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="https://example.com/hero.jpg"
+                    />
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      Main hero image for the collection content
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -510,8 +495,8 @@ const CreateCollectionContent: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     >
                       <option value="">Select Region</option>
-                      {regions.map(region => (
-                        <option key={region} value={region}>{region}</option>
+                      {continents.map(continent => (
+                        <option key={continent.value} value={continent.value}>{continent.label}</option>
                       ))}
                     </select>
                   </div>
@@ -530,7 +515,7 @@ const CreateCollectionContent: React.FC = () => {
                         {!formData.region ? "Select Region First" : "Select Country"}
                       </option>
                       {availableCountries.map(country => (
-                        <option key={country} value={country}>{country}</option>
+                        <option key={country.value} value={country.value}>{country.label}</option>
                       ))}
                     </select>
                   </div>
@@ -549,24 +534,9 @@ const CreateCollectionContent: React.FC = () => {
                         {!formData.country ? "Select Country First" : "Select City"}
                       </option>
                       {availableCities.map(city => (
-                        <option key={city} value={city}>{city}</option>
+                        <option key={city.value} value={city.value}>{city.label}</option>
                       ))}
-                      <option value="other">Other (Custom City)</option>
                     </select>
-
-                    {/* Custom city input for "Other" selection */}
-                    {formData.city === "other" && (
-                      <div className="mt-2">
-                        <input
-                          type="text"
-                          value=""
-                          onChange={(e) => handleInputChange("city", e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          placeholder="Enter custom city name"
-                          autoFocus
-                        />
-                      </div>
-                    )}
                   </div>
 
                   {/* Location Preview */}
@@ -583,6 +553,67 @@ const CreateCollectionContent: React.FC = () => {
                       </div>
                       <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                         This will be the location identifier for your collection content
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  Tags
+                </h2>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      Select Tags (Multiple)
+                    </label>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {availableTags.length === 0 ? (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                          No tags available. Create tags first from the Tags page.
+                        </p>
+                      ) : (
+                        availableTags.map(tag => (
+                          <label
+                            key={tag.id}
+                            className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedTags.includes(tag.name)}
+                              onChange={() => handleTagToggle(tag.name)}
+                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                            />
+                            <span className="text-sm text-gray-700 dark:text-gray-300">
+                              {tag.name}
+                            </span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Selected Tags Preview */}
+                  {selectedTags.length > 0 && (
+                    <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                      <h3 className="text-sm font-medium text-green-900 dark:text-green-100 mb-2">
+                        Selected Tags ({selectedTags.length})
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedTags.map(tagName => (
+                          <span
+                            key={tagName}
+                            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200"
+                          >
+                            {tagName}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                        Will be sent as: {JSON.stringify(selectedTags)}
                       </p>
                     </div>
                   )}

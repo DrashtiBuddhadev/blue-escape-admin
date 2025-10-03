@@ -14,24 +14,32 @@ export interface UpdateCollectionRequest extends Partial<CreateCollectionRequest
 export interface Feature {
   title: string;
   content: string;
-  images: string[]; // Array of 2-5 image URLs
+  images: { media: string[] }; // Array of image URLs to support 1-5 images
 }
 
 export interface AboutDestination {
   title: string;
   content: string;
+  description?: string;
+}
+
+export interface AboutDestinationBackend {
+  description: string;
 }
 
 export interface CollectionContent {
   id: string;
   collection_id: string;
+  property_name?: string;
+  featured_img?: string;
   hero_media?: string;
   about_collection?: string;
   features?: Feature[];
-  about_destination?: AboutDestination[];
+  about_destination?: AboutDestination[] | AboutDestinationBackend;
   region?: string;
   country?: string;
   city?: string;
+  tags?: string[];
   active?: boolean;
   created_at: string;
   updated_at: string;
@@ -40,13 +48,16 @@ export interface CollectionContent {
 
 export interface CreateCollectionContentRequest {
   collection_id: string;
+  property_name?: string;
+  featured_img?: string;
   hero_media?: string;
   about_collection?: string;
   features?: Feature[];
-  about_destination?: AboutDestination[];
+  about_destination?: AboutDestinationBackend;
   region?: string;
   country?: string;
   city?: string;
+  tags?: string[];
   active?: boolean;
 }
 

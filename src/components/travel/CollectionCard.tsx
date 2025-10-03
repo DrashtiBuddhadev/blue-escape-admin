@@ -1,47 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router";
-import { Collection, CollectionContent } from "../../api/types";
-import { collectionService } from "../../api/services";
-import { PencilIcon, TrashBinIcon, EyeIcon, GroupIcon, LocationIcon } from "../../icons";
+import { Collection } from "../../api/types";
+import { PencilIcon, TrashBinIcon, EyeIcon, GroupIcon } from "../../icons";
 
 interface CollectionCardProps {
   collection: Collection;
   onDelete?: (id: string) => void;
+  onEdit?: (collection: Collection) => void;
+  onView?: (collection: Collection) => void;
 }
 
-const CollectionCard: React.FC<CollectionCardProps> = ({ collection, onDelete }) => {
+const CollectionCard: React.FC<CollectionCardProps> = ({ collection, onDelete, onEdit, onView }) => {
   const [isDeleting, setIsDeleting] = useState(false);
-  const [locationCount, setLocationCount] = useState<number>(0);
-  const [topLocations, setTopLocations] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    fetchLocationData();
-  }, [collection.id]);
-
-  const fetchLocationData = async () => {
-    try {
-      setLoading(true);
-      const contents = await collectionService.getContentsByCollection(collection.id);
-      setLocationCount(contents.length);
-
-      // Get top 2 location names for preview
-      const locations = contents
-        .map(content => {
-          const parts = [];
-          if (content.city) parts.push(content.city);
-          if (content.country) parts.push(content.country);
-          if (content.region && parts.length === 0) parts.push(content.region);
-          return parts.length > 0 ? parts.join(', ') : 'Unknown Location';
-        })
-        .slice(0, 2);
-      setTopLocations(locations);
-    } catch (error) {
-      console.error('Error fetching location data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDelete = async () => {
     if (!onDelete) return;
@@ -79,51 +49,47 @@ const CollectionCard: React.FC<CollectionCardProps> = ({ collection, onDelete })
               {collection.name}
             </h3>
 
-            <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            <div className="text-sm text-gray-500 dark:text-gray-400">
               Created {formatDate(collection.created_at)}
-            </div>
-
-            {/* Location Information */}
-            <div className="flex items-center space-x-2">
-              <LocationIcon className="w-4 h-4 text-blue-500" />
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {loading ? (
-                  <span className="animate-pulse">Loading locations...</span>
-                ) : locationCount > 0 ? (
-                  <>
-                    <span className="font-medium text-blue-600 dark:text-blue-400">
-                      {locationCount} location{locationCount !== 1 ? 's' : ''}
-                    </span>
-                    {topLocations.length > 0 && (
-                      <span className="ml-1">
-                        - {topLocations.join(', ')}
-                        {locationCount > 2 && <span className="text-gray-400"> +{locationCount - 2} more</span>}
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <span className="text-gray-400">No locations added</span>
-                )}
-              </span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center space-x-2 ml-4">
-          <Link
-            to={`/collections/${collection.id}`}
-            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-            title="View Collection"
-          >
-            <EyeIcon className="w-4 h-4" />
-          </Link>
-          <Link
-            to={`/collections/${collection.id}/edit`}
-            className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-            title="Edit Collection"
-          >
-            <PencilIcon className="w-4 h-4" />
-          </Link>
+          {onView ? (
+            <button
+              onClick={() => onView(collection)}
+              className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              title="View Collection"
+            >
+              <EyeIcon className="w-4 h-4" />
+            </button>
+          ) : (
+            <Link
+              to={`/collections/${collection.id}`}
+              className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              title="View Collection"
+            >
+              <EyeIcon className="w-4 h-4" />
+            </Link>
+          )}
+          {onEdit ? (
+            <button
+              onClick={() => onEdit(collection)}
+              className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+              title="Edit Collection"
+            >
+              <PencilIcon className="w-4 h-4" />
+            </button>
+          ) : (
+            <Link
+              to={`/collections/${collection.id}/edit`}
+              className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+              title="Edit Collection"
+            >
+              <PencilIcon className="w-4 h-4" />
+            </Link>
+          )}
           {onDelete && (
             <button
               onClick={handleDelete}
@@ -149,7 +115,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({ collection, onDelete })
           </div>
 
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            Last updated {formatDate(collection.updated_at)}
+            Updated {formatDate(collection.updated_at)}
           </div>
         </div>
       </div>

@@ -1,3 +1,5 @@
+import React from "react";
+
 import ComponentCard from "../../common/ComponentCard";
 
 const DropzoneComponent: React.FC = () => {

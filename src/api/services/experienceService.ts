@@ -5,29 +5,34 @@ import type {
   CreateExperienceRequest,
   UpdateExperienceRequest,
   ExperienceListParams,
-  ExperienceListResponse,
-  ExperienceResponse,
 } from '../types';
 
 class ExperienceService {
   async getExperiences(params?: ExperienceListParams): Promise<Experience[]> {
-    const response = await apiClient.get<ExperienceListResponse>(ENDPOINTS.EXPERIENCES, params);
-    return Array.isArray(response) ? response : response.data || [];
+    return await apiClient.get<Experience[]>(ENDPOINTS.EXPERIENCES, params);
+  }
+
+  async getActiveExperiences(params?: ExperienceListParams): Promise<Experience[]> {
+    const activeParams = { ...params, active: true };
+    console.log('Fetching active experiences with params:', activeParams);
+    return await apiClient.get<Experience[]>(ENDPOINTS.EXPERIENCES, activeParams);
   }
 
   async getExperienceById(id: string): Promise<Experience> {
-    const response = await apiClient.get<ExperienceResponse>(ENDPOINTS.EXPERIENCE_BY_ID(id));
-    return response.data || response;
+    return await apiClient.get<Experience>(ENDPOINTS.EXPERIENCE_BY_ID(id));
   }
 
   async createExperience(data: CreateExperienceRequest): Promise<Experience> {
-    const response = await apiClient.post<ExperienceResponse>(ENDPOINTS.EXPERIENCES, data);
-    return response.data || response;
+    return await apiClient.post<Experience>(ENDPOINTS.EXPERIENCES, data);
   }
 
   async updateExperience(id: string, data: UpdateExperienceRequest): Promise<Experience> {
-    const response = await apiClient.patch<ExperienceResponse>(ENDPOINTS.EXPERIENCE_BY_ID(id), data);
-    return response.data || response;
+    console.log('ExperienceService.updateExperience called with:', {
+      id,
+      endpoint: ENDPOINTS.EXPERIENCE_BY_ID(id),
+      data: JSON.stringify(data, null, 2)
+    });
+    return await apiClient.patch<Experience>(ENDPOINTS.EXPERIENCE_BY_ID(id), data);
   }
 
   async deleteExperience(id: string): Promise<void> {
