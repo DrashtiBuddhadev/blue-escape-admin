@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { CollectionContent } from "../../api/types";
 import { LocationIcon, PencilIcon, EyeIcon, TrashBinIcon, FileIcon } from "../../icons";
 

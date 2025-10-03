@@ -29,7 +29,7 @@ const CreateExperience: React.FC = () => {
 
   const [continents] = useState(() => getContinents());
   const [availableCountries, setAvailableCountries] = useState<{value: string, label: string, code?: string}[]>([]);
-  const [availableStates, setAvailableStates] = useState<{value: string, label: string, code?: string}[]>([]);
+  const [, setAvailableStates] = useState<{value: string, label: string, code?: string}[]>([]);
   const [availableCities, setAvailableCities] = useState<{value: string, label: string}[]>([]);
   const months = [
     "January", "February", "March", "April", "May", "June",

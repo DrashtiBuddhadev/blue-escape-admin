@@ -1,5 +1,5 @@
 import React from "react";
-import { CollectionContent, AboutDestinationBackend } from "../../api/types";
+import { CollectionContent } from "../../api/types";
 import { CloseIcon, LocationIcon, FileIcon } from "../../icons";
 
 interface ViewCollectionContentModalProps {

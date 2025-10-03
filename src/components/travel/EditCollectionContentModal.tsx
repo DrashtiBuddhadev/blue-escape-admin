@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { CollectionContent, UpdateCollectionContentRequest, Feature, AboutDestination, AboutDestinationBackend, Tag } from "../../api/types";
+import { CollectionContent, UpdateCollectionContentRequest, Feature, Tag } from "../../api/types";
 import { collectionService, tagService } from "../../api/services";
 import { CloseIcon, PlusIcon, TrashBinIcon } from "../../icons";
 import { getContinents, getCountriesByContinent, getAllCountriesByContinent, getCitiesByCountry, getCountryCodeByName } from "../../utils/locationUtils";

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { CreateCollectionContentRequest, Collection, Feature, AboutDestination, AboutDestinationBackend, Tag } from "../../api/types";
+import { CreateCollectionContentRequest, Collection, Feature, Tag } from "../../api/types";
 import { collectionService, tagService } from "../../api/services";
 import PageMeta from "../../components/common/PageMeta";
 import { PlusIcon, TrashBinIcon, ChevronLeftIcon } from "../../icons";
