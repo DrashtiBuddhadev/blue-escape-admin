@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { CollectionContent, UpdateCollectionContentRequest, Feature, Tag } from "../../api/types";
 import { collectionService, tagService } from "../../api/services";
 import { CloseIcon, PlusIcon, TrashBinIcon } from "../../icons";
 import { getContinents, getCountriesByContinent, getAllCountriesByContinent, getCitiesByCountry, getCountryCodeByName } from "../../utils/locationUtils";
+import SearchableSelect from "../form/SearchableSelect";
 
 interface EditCollectionContentModalProps {
   content: CollectionContent;
@@ -36,11 +37,22 @@ const EditCollectionContentModal: React.FC<EditCollectionContentModalProps> = ({
 
       // Safe initialization with fallbacks
       const safeFeatures = Array.isArray(content.features) && content.features.length > 0
-        ? content.features.map(feature => ({
-            title: feature.title || "",
-            content: feature.content || "",
-            images: Array.isArray(feature.images) ? feature.images : (feature.images ? [feature.images] : [""])
-          }))
+        ? content.features.map(feature => {
+            // Handle the backend format: { media: string[] }
+            let imageArray: string[] = [""];
+            if (feature.images) {
+              if (typeof feature.images === 'object' && 'media' in feature.images && Array.isArray(feature.images.media)) {
+                imageArray = feature.images.media.length > 0 ? feature.images.media : [""];
+              } else if (Array.isArray(feature.images)) {
+                imageArray = feature.images.length > 0 ? feature.images : [""];
+              }
+            }
+            return {
+              title: feature.title || "",
+              content: feature.content || "",
+              images: imageArray
+            };
+          })
         : [{ title: "", content: "", images: [""] }];
 
       let aboutDestinationDescription = "";
@@ -325,27 +337,31 @@ const EditCollectionContentModal: React.FC<EditCollectionContentModalProps> = ({
       //   minimalUpdateData.city = formData.city.trim();
       // }
 
-      // Features - TEMPORARILY DISABLED for testing
-      // if (formData.features && Array.isArray(formData.features) && formData.features.length > 0) {
-      //   const cleanFeatures = formData.features
-      //     .map(feature => {
-      //       if (!feature || typeof feature !== 'object') return null;
-      //       const cleanImages = Array.isArray(feature.images)
-      //         ? feature.images.filter(img => img && typeof img === 'string' && img.trim() !== "")
-      //         : [];
-      //       const title = (feature.title || "").trim();
-      //       const content = (feature.content || "").trim();
-      //       if (title || content) {
-      //         return { title, content, images: cleanImages };
-      //       }
-      //       return null;
-      //     })
-      //     .filter(Boolean);
-      //   if (cleanFeatures.length > 0) {
-      //     console.log('Sending clean features:', JSON.stringify(cleanFeatures, null, 2));
-      //     minimalUpdateData.features = cleanFeatures;
-      //   }
-      // }
+      // Features - Convert images array to { media: string[] } format
+      if (formData.features && Array.isArray(formData.features) && formData.features.length > 0) {
+        const cleanFeatures = formData.features
+          .map(feature => {
+            if (!feature || typeof feature !== 'object') return null;
+            const cleanImageUrls = Array.isArray(feature.images)
+              ? feature.images.filter(img => img && typeof img === 'string' && img.trim() !== "")
+              : [];
+            const title = (feature.title || "").trim();
+            const content = (feature.content || "").trim();
+            if (title || content) {
+              return {
+                title,
+                content,
+                images: { media: cleanImageUrls } // Backend expects { media: string[] }
+              };
+            }
+            return null;
+          })
+          .filter(Boolean);
+        if (cleanFeatures.length > 0) {
+          console.log('Sending clean features:', JSON.stringify(cleanFeatures, null, 2));
+          minimalUpdateData.features = cleanFeatures;
+        }
+      }
 
       console.log('Final PATCH payload:', JSON.stringify(minimalUpdateData, null, 2));
       console.log('Update URL will be:', `/collections/content/${content.id}`);
@@ -564,33 +580,30 @@ const EditCollectionContentModal: React.FC<EditCollectionContentModalProps> = ({
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     City
                   </label>
-                  <select
+                  <SearchableSelect
                     value={formData.city || ""}
-                    onChange={(e) => handleInputChange('city', e.target.value)}
+                    onChange={(value) => handleInputChange('city', value)}
+                    options={availableCities}
+                    placeholder={!formData.country ? "Select Country First" : "Select City"}
                     disabled={!formData.country}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <option value="">{!formData.country ? "Select Country First" : "Select City"}</option>
-                    {availableCities.map(city => (
-                      <option key={city.value} value={city.value}>{city.label}</option>
-                    ))}
-                  </select>
+                    emptyMessage={!formData.country ? "Please select a country first" : "No cities available"}
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Tags Section */}
+            {/* Categories Section */}
             <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Tags</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Categories</h3>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Select Tags (Multiple)
+                  Select Categories (Multiple)
                 </label>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {availableTags.length === 0 ? (
                     <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                      No tags available. Create tags first from the Tags page.
+                      No categories available. Create categories first from the Categories page.
                     </p>
                   ) : (
                     availableTags.map(tag => (
@@ -612,11 +625,11 @@ const EditCollectionContentModal: React.FC<EditCollectionContentModalProps> = ({
                   )}
                 </div>
 
-                {/* Selected Tags Preview */}
+                {/* Selected Categories Preview */}
                 {selectedTags.length > 0 && (
                   <div className="mt-4 p-3 bg-green-100 dark:bg-green-900/40 rounded-lg border border-green-200 dark:border-green-800">
                     <h4 className="text-sm font-medium text-green-900 dark:text-green-100 mb-2">
-                      Selected Tags ({selectedTags.length})
+                      Selected Categories ({selectedTags.length})
                     </h4>
                     <div className="flex flex-wrap gap-2">
                       {selectedTags.map(tagName => (

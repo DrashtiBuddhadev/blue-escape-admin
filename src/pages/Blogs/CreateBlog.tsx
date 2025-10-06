@@ -5,6 +5,7 @@ import { blogService } from "../../api/services";
 import PageMeta from "../../components/common/PageMeta";
 import { PlusIcon, TrashBinIcon, ChevronLeftIcon } from "../../icons";
 import { getContinents, getCountriesByContinent, getCitiesByCountry, getCountryCodeByName } from "../../utils/locationUtils";
+import SearchableSelect from "../../components/form/SearchableSelect";
 
 const CreateBlog: React.FC = () => {
   const navigate = useNavigate();
@@ -378,17 +379,14 @@ const CreateBlog: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       City
                     </label>
-                    <select
+                    <SearchableSelect
                       value={formData.city}
-                      onChange={(e: any) => handleInputChange("city", e.target.value)}
+                      onChange={(value) => handleInputChange("city", value)}
+                      options={availableCities}
+                      placeholder={!formData.country ? "Select Country First" : "Select City"}
                       disabled={!formData.country}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <option value="">{!formData.country ? "Select Country First" : "Select City"}</option>
-                      {availableCities.map(city => (
-                        <option key={city.value} value={city.value}>{city.label}</option>
-                      ))}
-                    </select>
+                      emptyMessage={!formData.country ? "Please select a country first" : "No cities available"}
+                    />
                   </div>
                 </div>
               </div>

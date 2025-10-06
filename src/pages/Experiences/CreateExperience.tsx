@@ -5,6 +5,7 @@ import { experienceService } from "../../api/services";
 import PageMeta from "../../components/common/PageMeta";
 import { PlusIcon, TrashBinIcon, ChevronLeftIcon } from "../../icons";
 import { getContinents, getCountriesByContinent, getStatesByCountry, getCitiesByCountry, getCountryCodeByName } from "../../utils/locationUtils";
+import SearchableSelect from "../../components/form/SearchableSelect";
 
 const CreateExperience: React.FC = () => {
   const navigate = useNavigate();
@@ -22,7 +23,6 @@ const CreateExperience: React.FC = () => {
     content: [{ title: "", content: "" }],
     gallery: [{ name: "", image: "" }],
     story: "",
-    tags: [],
     duration: undefined,
     price: undefined,
   });
@@ -171,23 +171,6 @@ const CreateExperience: React.FC = () => {
     setFormData(prev => ({ ...prev, taglines: newTaglines.length > 0 ? newTaglines : [""] }));
   };
 
-  const handleTagChange = (index: number, value: string) => {
-    const newTags = [...(formData.tags || [])];
-    newTags[index] = value;
-    setFormData(prev => ({ ...prev, tags: newTags }));
-  };
-
-  const addTag = () => {
-    setFormData(prev => ({
-      ...prev,
-      tags: [...(prev.tags || []), ""]
-    }));
-  };
-
-  const removeTag = (index: number) => {
-    const newTags = (formData.tags || []).filter((_, i) => i !== index);
-    setFormData(prev => ({ ...prev, tags: newTags.length > 0 ? newTags : [] }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,12 +181,11 @@ const CreateExperience: React.FC = () => {
 
     setLoading(true);
     try {
-      // Filter out empty carousel media URLs, taglines, and tags before submitting
+      // Filter out empty carousel media URLs and taglines before submitting
       const submitData = {
         ...formData,
         carousel_media: formData.carousel_media?.filter(url => url.trim() !== "") || [],
-        taglines: formData.taglines?.filter(tagline => tagline.trim() !== "") || [],
-        tags: formData.tags?.filter(tag => tag.trim() !== "") || []
+        taglines: formData.taglines?.filter(tagline => tagline.trim() !== "") || []
       };
 
       await experienceService.createExperience(submitData);
@@ -662,17 +644,14 @@ const CreateExperience: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       City
                     </label>
-                    <select
+                    <SearchableSelect
                       value={formData.city}
-                      onChange={(e: any) => handleInputChange("city", e.target.value)}
+                      onChange={(value) => handleInputChange("city", value)}
+                      options={availableCities}
+                      placeholder={!formData.country ? "Select Country First" : "Select City"}
                       disabled={!formData.country}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <option value="">{!formData.country ? "Select Country First" : "Select City"}</option>
-                      {availableCities.map(city => (
-                        <option key={city.value} value={city.value}>{city.label}</option>
-                      ))}
-                    </select>
+                      emptyMessage={!formData.country ? "Please select a country first" : "No cities available"}
+                    />
                   </div>
                 </div>
               </div>
@@ -684,51 +663,6 @@ const CreateExperience: React.FC = () => {
                 </h2>
 
                 <div className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Tags
-                      </label>
-                      <button
-                        type="button"
-                        onClick={addTag}
-                        className="inline-flex items-center space-x-1 px-2 py-1 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors"
-                      >
-                        <PlusIcon className="w-3 h-3" />
-                        <span>Add Tag</span>
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {(formData.tags || []).map((tag, index) => (
-                        <div key={index} className="flex space-x-2">
-                          <input
-                            type="text"
-                            value={tag}
-                            onChange={(e: any) => handleTagChange(index, e.target.value)}
-                            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder={`Tag ${index + 1}: e.g., "adventure travel", "cultural experience"`}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeTag(index)}
-                            className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                            title="Remove tag"
-                          >
-                            <TrashBinIcon className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                      {(!formData.tags || formData.tags.length === 0) && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                          No tags added yet. Click "Add Tag" to get started.
-                        </p>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                      Add tags for better categorization. Each tag can contain spaces.
-                    </p>
-                  </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

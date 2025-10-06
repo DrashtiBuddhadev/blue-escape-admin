@@ -45,7 +45,7 @@ const navItems: NavItem[] = [
   },
   {
     icon: <TagIcon />,
-    name: "Tags",
+    name: "Categories",
     path: "/tags",
   },
   {

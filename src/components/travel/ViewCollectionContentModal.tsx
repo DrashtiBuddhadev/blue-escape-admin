@@ -31,6 +31,39 @@ const ViewCollectionContentModal: React.FC<ViewCollectionContentModalProps> = ({
     return parts.length > 0 ? parts.join(', ') : 'Unknown Location';
   };
 
+  const isVideoUrl = (url: string): boolean => {
+    if (!url) return false;
+    return url.includes('youtube.com') ||
+           url.includes('youtu.be') ||
+           url.includes('vimeo.com') ||
+           url.includes('player.vimeo.com') ||
+           url.endsWith('.mp4') ||
+           url.endsWith('.webm') ||
+           url.endsWith('.ogg');
+  };
+
+  const getEmbedUrl = (url: string): string => {
+    // YouTube formats
+    if (url.includes('youtu.be/')) {
+      const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+    if (url.includes('youtube.com/watch?v=')) {
+      const videoId = url.split('v=')[1]?.split('&')[0];
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+    // Vimeo - if already embed URL, return as is
+    if (url.includes('player.vimeo.com')) {
+      return url;
+    }
+    if (url.includes('vimeo.com/')) {
+      const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
+      return `https://player.vimeo.com/video/${videoId}`;
+    }
+    // Direct video files or other embeds
+    return url;
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -113,25 +146,39 @@ const ViewCollectionContentModal: React.FC<ViewCollectionContentModalProps> = ({
             <div className="space-y-3">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Hero Media</h3>
               <div className="aspect-video w-full bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
-                <img
-                  src={content.hero_media}
-                  alt={`Hero - ${getLocationName()}`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    target.nextElementSibling?.classList.remove('hidden');
-                  }}
-                />
-                <div className="hidden w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
-                  <div className="text-center">
-                    <FileIcon className="w-12 h-12 mx-auto mb-2" />
-                    <p className="text-sm">Hero media not available</p>
-                  </div>
-                </div>
+                {isVideoUrl(content.hero_media) ? (
+                  <iframe
+                    src={getEmbedUrl(content.hero_media)}
+                    title={`Hero Video - ${getLocationName()}`}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <>
+                    <img
+                      src={content.hero_media}
+                      alt={`Hero - ${getLocationName()}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                    <div className="hidden w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
+                      <div className="text-center">
+                        <FileIcon className="w-12 h-12 mx-auto mb-2" />
+                        <p className="text-sm">Hero media not available</p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                This image is displayed in the detail view
+                {isVideoUrl(content.hero_media)
+                  ? 'This video is displayed in the detail view'
+                  : 'This image is displayed in the detail view'}
               </p>
             </div>
           )}
@@ -245,33 +292,48 @@ const ViewCollectionContentModal: React.FC<ViewCollectionContentModalProps> = ({
                       </p>
                     )}
 
-                    {feature.images && Array.isArray(feature.images) && feature.images.length > 0 && (
-                      <div className="space-y-3">
-                        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">Images ({feature.images.length})</h5>
-                        <div className="grid grid-cols-2 gap-2">
-                          {feature.images.map((imageUrl, imgIndex) => (
-                            <div key={imgIndex} className="aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 relative">
-                              <img
-                                src={imageUrl}
-                                alt={`${feature.title || `Feature ${index + 1}`} - Image ${imgIndex + 1}`}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  target.nextElementSibling?.classList.remove('hidden');
-                                }}
-                              />
-                              <div className="hidden w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500 absolute inset-0 bg-gray-100 dark:bg-gray-700">
-                                <div className="text-center">
-                                  <FileIcon className="w-6 h-6 mx-auto mb-1" />
-                                  <p className="text-xs">Image not available</p>
+                    {(() => {
+                      // Handle both formats: {media: [urls]} (new) and [urls] (legacy)
+                      let imageUrls: string[] = [];
+
+                      if (feature.images) {
+                        if (typeof feature.images === 'object' && 'media' in feature.images && Array.isArray(feature.images.media)) {
+                          // New format: {media: [urls]}
+                          imageUrls = feature.images.media;
+                        } else if (Array.isArray(feature.images)) {
+                          // Legacy format: [urls]
+                          imageUrls = feature.images;
+                        }
+                      }
+
+                      return imageUrls.length > 0 && (
+                        <div className="space-y-3">
+                          <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">Images ({imageUrls.length})</h5>
+                          <div className="grid grid-cols-2 gap-2">
+                            {imageUrls.map((imageUrl, imgIndex) => (
+                              <div key={imgIndex} className="aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 relative">
+                                <img
+                                  src={imageUrl}
+                                  alt={`${feature.title || `Feature ${index + 1}`} - Image ${imgIndex + 1}`}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    target.nextElementSibling?.classList.remove('hidden');
+                                  }}
+                                />
+                                <div className="hidden w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500 absolute inset-0 bg-gray-100 dark:bg-gray-700">
+                                  <div className="text-center">
+                                    <FileIcon className="w-6 h-6 mx-auto mb-1" />
+                                    <p className="text-xs">Image not available</p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                     </div>
                   );
                 })}

@@ -100,8 +100,8 @@ const TagList: React.FC = () => {
   return (
     <>
       <PageMeta
-        title="Tags | Blue Escape Travel Admin"
-        description="Manage tags for categorizing travel content"
+        title="Categories | Blue Escape Travel Admin"
+        description="Manage categories for organizing travel content"
       />
 
       <div className="space-y-6">
@@ -109,10 +109,10 @@ const TagList: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Tags
+              Categories
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Manage tags for categorizing collection content
+              Manage categories for organizing collection content
             </p>
           </div>
 
@@ -121,7 +121,7 @@ const TagList: React.FC = () => {
             className="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
           >
             <PlusIcon className="w-4 h-4" />
-            <span>Add Tag</span>
+            <span>Add Category</span>
           </button>
         </div>
 
@@ -137,7 +137,7 @@ const TagList: React.FC = () => {
                 </div>
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
-                    Error loading tags
+                    Error loading categories
                   </h3>
                   <p className="text-sm text-red-700 dark:text-red-300 mt-1">
                     {error}
@@ -173,17 +173,17 @@ const TagList: React.FC = () => {
                 <TagIcon className="w-16 h-16 mx-auto" />
               </div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                No tags found
+                No categories found
               </h3>
               <p className="text-gray-500 dark:text-gray-400 mb-6">
-                Get started by creating your first tag.
+                Get started by creating your first category.
               </p>
               <button
                 onClick={() => setIsAddingNew(true)}
                 className="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
               >
                 <PlusIcon className="w-4 h-4" />
-                <span>Add Tag</span>
+                <span>Add Category</span>
               </button>
             </div>
           ) : !error ? (
@@ -192,7 +192,7 @@ const TagList: React.FC = () => {
                 <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Tag Name
+                      Category Name
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Created
@@ -221,7 +221,7 @@ const TagList: React.FC = () => {
                               setNewTagName("");
                             }
                           }}
-                          placeholder="Enter tag name"
+                          placeholder="Enter category name"
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           autoFocus
                         />
@@ -336,7 +336,7 @@ const TagList: React.FC = () => {
         {!loading && !error && tags.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Total: {tags.length} tag{tags.length !== 1 ? 's' : ''}
+              Total: {tags.length} {tags.length !== 1 ? 'categories' : 'category'}
             </div>
           </div>
         )}

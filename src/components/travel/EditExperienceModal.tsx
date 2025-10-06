@@ -3,6 +3,7 @@ import { Experience, UpdateExperienceRequest, BestTime, ExperienceContent, Galle
 import { experienceService } from "../../api/services";
 import { CloseIcon, PlusIcon, TrashBinIcon } from "../../icons";
 import { getContinents, getCountriesByContinent, getCitiesByCountry, getCountryCodeByName } from "../../utils/locationUtils";
+import SearchableSelect from "../form/SearchableSelect";
 
 interface EditExperienceModalProps {
   experience: Experience;
@@ -42,7 +43,6 @@ const EditExperienceModal: React.FC<EditExperienceModalProps> = ({
         content: experience.content || [],
         gallery: experience.gallery || [],
         story: experience.story || "",
-        tags: experience.tags || [],
         active: experience.active,
       });
       setErrors({});
@@ -148,20 +148,6 @@ const EditExperienceModal: React.FC<EditExperienceModalProps> = ({
     handleInputChange('gallery', updatedGallery);
   };
 
-  const handleTagChange = (index: number, value: string) => {
-    const updatedTags = [...(formData.tags || [])];
-    updatedTags[index] = value;
-    handleInputChange('tags', updatedTags);
-  };
-
-  const addTag = () => {
-    handleInputChange('tags', [...(formData.tags || []), ""]);
-  };
-
-  const removeTag = (index: number) => {
-    const updatedTags = (formData.tags || []).filter((_, i) => i !== index);
-    handleInputChange('tags', updatedTags);
-  };
 
   const handleTaglineChange = (index: number, value: string) => {
     const updatedTaglines = [...(formData.taglines || [])];
@@ -234,10 +220,6 @@ const EditExperienceModal: React.FC<EditExperienceModalProps> = ({
 
       if (formData.gallery && formData.gallery.length > 0) {
         minimalUpdateData.gallery = formData.gallery.filter(g => g.name && g.image);
-      }
-
-      if (formData.tags && formData.tags.length > 0) {
-        minimalUpdateData.tags = formData.tags.filter(tag => tag.trim());
       }
 
       if (formData.duration && formData.duration > 0) {
@@ -426,17 +408,14 @@ const EditExperienceModal: React.FC<EditExperienceModalProps> = ({
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   City
                 </label>
-                <select
+                <SearchableSelect
                   value={formData.city || ""}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
+                  onChange={(value) => handleInputChange('city', value)}
+                  options={availableCities}
+                  placeholder={!formData.country ? "Select Country First" : "Select City"}
                   disabled={!formData.country}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <option value="">{!formData.country ? "Select Country First" : "Select City"}</option>
-                  {availableCities.map(city => (
-                    <option key={city.value} value={city.value}>{city.label}</option>
-                  ))}
-                </select>
+                  emptyMessage={!formData.country ? "Please select a country first" : "No cities available"}
+                />
               </div>
             </div>
           </div>
@@ -645,47 +624,6 @@ const EditExperienceModal: React.FC<EditExperienceModalProps> = ({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               placeholder="Tell the story of this experience..."
             />
-          </div>
-
-          {/* Tags */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Tags</h3>
-              <button
-                type="button"
-                onClick={addTag}
-                className="inline-flex items-center space-x-1 px-2 py-1 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors"
-              >
-                <PlusIcon className="w-3 h-3" />
-                <span>Add Tag</span>
-              </button>
-            </div>
-            <div className="space-y-2">
-              {(formData.tags || []).map((tag, index) => (
-                <div key={index} className="flex space-x-2">
-                  <input
-                    type="text"
-                    value={tag}
-                    onChange={(e) => handleTagChange(index, e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder={`Tag ${index + 1}: e.g., "adventure travel", "cultural experience"`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeTag(index)}
-                    className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                    title="Remove tag"
-                  >
-                    <TrashBinIcon className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-              {(!formData.tags || formData.tags.length === 0) && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                  No tags added yet. Click "Add Tag" to get started.
-                </p>
-              )}
-            </div>
           </div>
 
           {/* Duration and Price */}

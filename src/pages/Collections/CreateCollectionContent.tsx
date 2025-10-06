@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import { CreateCollectionContentRequest, Collection, Feature, Tag } from "../../api/types";
 import { collectionService, tagService } from "../../api/services";
 import PageMeta from "../../components/common/PageMeta";
 import { PlusIcon, TrashBinIcon, ChevronLeftIcon } from "../../icons";
 import { getContinents, getCountriesByContinent, getCitiesByCountry, getCountryCodeByName } from "../../utils/locationUtils";
+import SearchableSelect from "../../components/form/SearchableSelect";
 
 const CreateCollectionContent: React.FC = () => {
   const navigate = useNavigate();
@@ -524,19 +525,14 @@ const CreateCollectionContent: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       City
                     </label>
-                    <select
+                    <SearchableSelect
                       value={formData.city}
-                      onChange={(e) => handleInputChange("city", e.target.value)}
+                      onChange={(value) => handleInputChange("city", value)}
+                      options={availableCities}
+                      placeholder={!formData.country ? "Select Country First" : "Select City"}
                       disabled={!formData.country}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <option value="">
-                        {!formData.country ? "Select Country First" : "Select City"}
-                      </option>
-                      {availableCities.map(city => (
-                        <option key={city.value} value={city.value}>{city.label}</option>
-                      ))}
-                    </select>
+                      emptyMessage={!formData.country ? "Please select a country first" : "No cities available"}
+                    />
                   </div>
 
                   {/* Location Preview */}
@@ -559,21 +555,21 @@ const CreateCollectionContent: React.FC = () => {
                 </div>
               </div>
 
-              {/* Tags */}
+              {/* Categories */}
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  Tags
+                  Categories
                 </h2>
 
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                      Select Tags (Multiple)
+                      Select Categories (Multiple)
                     </label>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {availableTags.length === 0 ? (
                         <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                          No tags available. Create tags first from the Tags page.
+                          No categories available. Create categories first from the Categories page.
                         </p>
                       ) : (
                         availableTags.map(tag => (
@@ -596,11 +592,11 @@ const CreateCollectionContent: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Selected Tags Preview */}
+                  {/* Selected Categories Preview */}
                   {selectedTags.length > 0 && (
                     <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                       <h3 className="text-sm font-medium text-green-900 dark:text-green-100 mb-2">
-                        Selected Tags ({selectedTags.length})
+                        Selected Categories ({selectedTags.length})
                       </h3>
                       <div className="flex flex-wrap gap-2">
                         {selectedTags.map(tagName => (
