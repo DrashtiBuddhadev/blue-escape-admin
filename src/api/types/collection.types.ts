@@ -11,6 +11,24 @@ export interface CreateCollectionRequest {
 
 export interface UpdateCollectionRequest extends Partial<CreateCollectionRequest> {}
 
+export interface CollectionListParams {
+  region?: string;
+  country?: string;
+  city?: string;
+  tags?: string[];
+  page?: number;
+  limit?: number;
+}
+
+export interface CollectionContentListParams {
+  region?: string;
+  country?: string;
+  city?: string;
+  tags?: string[];
+  page?: number;
+  limit?: number;
+}
+
 export interface Feature {
   title: string;
   content: string;
@@ -66,6 +84,9 @@ export interface UpdateCollectionContentRequest extends Partial<Omit<CreateColle
 export interface CollectionListResponse {
   data: Collection[];
   total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export interface CollectionResponse {
@@ -75,6 +96,9 @@ export interface CollectionResponse {
 export interface CollectionContentListResponse {
   data: CollectionContent[];
   total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export interface CollectionContentResponse {

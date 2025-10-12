@@ -54,9 +54,9 @@ const TravelMetrics = () => {
         ]);
 
         setMetrics(prev => [
-          { ...prev[0], value: blogs.length },
-          { ...prev[1], value: collectionContents.length },
-          { ...prev[2], value: experiences.length },
+          { ...prev[0], value: blogs.total },
+          { ...prev[1], value: collectionContents.total },
+          { ...prev[2], value: experiences.total },
           { ...prev[3], value: tags.length },
         ]);
       } catch (error) {

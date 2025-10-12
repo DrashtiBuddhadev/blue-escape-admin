@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+import { setupCache } from 'axios-cache-interceptor';
 import apiConfig from './config';
 
 interface ApiError {
@@ -11,10 +12,19 @@ class ApiClient {
   private client: AxiosInstance;
 
   constructor() {
-    this.client = axios.create({
+    const axiosInstance = axios.create({
       baseURL: apiConfig.BASE_URL,
       timeout: apiConfig.TIMEOUT,
       headers: apiConfig.DEFAULT_HEADERS,
+    });
+
+    // Setup cache interceptor with 2-minute TTL
+    this.client = setupCache(axiosInstance, {
+      ttl: 2 * 60 * 1000, // 2 minutes in milliseconds
+      methods: ['get'], // Only cache GET requests
+      cachePredicate: {
+        statusCheck: (status) => status >= 200 && status < 300, // Only cache successful responses
+      },
     });
 
     this.setupInterceptors();

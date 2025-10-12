@@ -6,6 +6,7 @@ import BlogCard from "../../components/travel/BlogCard";
 import EditBlogModal from "../../components/travel/EditBlogModal";
 import ViewBlogModal from "../../components/travel/ViewBlogModal";
 import PageMeta from "../../components/common/PageMeta";
+import Pagination from "../../components/common/Pagination";
 import { PlusIcon, GridIcon, ListIcon, DocsIcon } from "../../icons";
 import { getContinents, getCountriesByContinent, getAllCountriesByContinent } from "../../utils/locationUtils";
 
@@ -19,6 +20,12 @@ const BlogList: React.FC = () => {
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedViewBlog, setSelectedViewBlog] = useState<Blog | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   const [continents] = useState(() => getContinents());
   const [availableCountries, setAvailableCountries] = useState<{value: string, label: string}[]>([]);
@@ -26,7 +33,7 @@ const BlogList: React.FC = () => {
 
   useEffect(() => {
     fetchBlogs();
-  }, [filters]);
+  }, [filters, currentPage, itemsPerPage]);
 
   useEffect(() => {
     // Update available countries when region filter changes
@@ -47,17 +54,18 @@ const BlogList: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      // Only send region filter to API, handle country client-side
-      const apiFilters = { region: filters.region };
-      const data = await blogService.getBlogs(apiFilters);
-
-      // Apply client-side filtering for country (since backend doesn't support it yet)
-      let filteredData = data;
-      if (filters.country) {
-        filteredData = data.filter(blog => blog.country === filters.country);
-      }
-
-      setBlogs(filteredData);
+      
+      const apiFilters = {
+        ...filters,
+        page: currentPage,
+        limit: itemsPerPage,
+      };
+      
+      const response = await blogService.getBlogs(apiFilters);
+      
+      setBlogs(response.data);
+      setTotalItems(response.total);
+      setTotalPages(response.totalPages);
     } catch (error: any) {
       console.error('Error fetching blogs:', error);
       setError(error?.message || 'Failed to fetch blogs. Please check your connection and try again.');
@@ -112,6 +120,7 @@ const BlogList: React.FC = () => {
   };
 
   const handleFilterChange = (key: keyof BlogListParams, value: string) => {
+    setCurrentPage(1); // Reset to first page when filters change
     setFilters(prev => ({
       ...prev,
       [key]: value || undefined
@@ -119,7 +128,17 @@ const BlogList: React.FC = () => {
   };
 
   const clearFilters = () => {
+    setCurrentPage(1);
     setFilters({});
+  };
+  
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+  
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setCurrentPage(1);
+    setItemsPerPage(newItemsPerPage);
   };
 
   return (
@@ -304,13 +323,17 @@ const BlogList: React.FC = () => {
           </div>
         ) : null}
 
-        {/* Stats */}
-        {!loading && !error && blogs.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Showing {blogs.length} blog{blogs.length !== 1 ? 's' : ''}
-            </div>
-          </div>
+        {/* Pagination */}
+        {!loading && !error && totalPages > 1 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+            loading={loading}
+          />
         )}
 
         {/* Edit Modal */}

@@ -7,12 +7,21 @@ import type {
   CollectionContent,
   CreateCollectionContentRequest,
   UpdateCollectionContentRequest,
+  CollectionListParams,
+  CollectionListResponse,
+  CollectionContentListParams,
+  CollectionContentListResponse,
 } from '../types';
 
 class CollectionService {
   // Collections
-  async getCollections(): Promise<Collection[]> {
-    return await apiClient.get<Collection[]>(ENDPOINTS.COLLECTIONS);
+  async getCollections(params?: CollectionListParams): Promise<CollectionListResponse> {
+    const queryParams = {
+      page: 1,
+      limit: 10,
+      ...params,
+    };
+    return await apiClient.get<CollectionListResponse>(ENDPOINTS.COLLECTIONS, queryParams);
   }
 
   async getCollectionById(id: string): Promise<Collection> {
@@ -37,8 +46,13 @@ class CollectionService {
   }
 
   // Collection Content
-  async getAllCollectionContents(): Promise<CollectionContent[]> {
-    return await apiClient.get<CollectionContent[]>(ENDPOINTS.COLLECTION_CONTENT_ALL);
+  async getAllCollectionContents(params?: CollectionContentListParams): Promise<CollectionContentListResponse> {
+    const queryParams = {
+      page: 1,
+      limit: 10,
+      ...params,
+    };
+    return await apiClient.get<CollectionContentListResponse>(ENDPOINTS.COLLECTION_CONTENT_ALL, queryParams);
   }
 
   async getCollectionContentById(id: string): Promise<CollectionContent> {

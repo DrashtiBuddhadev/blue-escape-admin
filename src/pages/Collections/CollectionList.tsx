@@ -6,6 +6,7 @@ import CollectionCard from "../../components/travel/CollectionCard";
 import EditCollectionModal from "../../components/travel/EditCollectionModal";
 import ViewCollectionModal from "../../components/travel/ViewCollectionModal";
 import PageMeta from "../../components/common/PageMeta";
+import Pagination from "../../components/common/Pagination";
 import { PlusIcon, GroupIcon } from "../../icons";
 
 const CollectionList: React.FC = () => {
@@ -15,16 +16,27 @@ const CollectionList: React.FC = () => {
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedViewCollection, setSelectedViewCollection] = useState<Collection | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
     fetchCollections();
-  }, []);
+  }, [currentPage, itemsPerPage]);
 
   const fetchCollections = async () => {
     try {
       setLoading(true);
-      const data = await collectionService.getCollections();
-      setCollections(data);
+      const response = await collectionService.getCollections({
+        page: currentPage,
+        limit: itemsPerPage,
+      });
+      setCollections(response.data);
+      setTotalItems(response.total);
+      setTotalPages(response.totalPages);
     } catch (error) {
       console.error('Error fetching collections:', error);
     } finally {
@@ -65,6 +77,15 @@ const CollectionList: React.FC = () => {
   const handleCloseViewModal = () => {
     setViewModalOpen(false);
     setSelectedViewCollection(null);
+  };
+  
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+  
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setCurrentPage(1);
+    setItemsPerPage(newItemsPerPage);
   };
 
   return (
@@ -145,13 +166,17 @@ const CollectionList: React.FC = () => {
           </div>
         )}
 
-        {/* Stats */}
-        {!loading && collections.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Showing {collections.length} collection{collections.length !== 1 ? 's' : ''}
-            </div>
-          </div>
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+            loading={loading}
+          />
         )}
 
         {/* Edit Modal */}

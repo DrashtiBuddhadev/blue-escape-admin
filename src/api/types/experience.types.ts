@@ -60,15 +60,17 @@ export interface ExperienceListParams {
   region?: string;
   country?: string;
   city?: string;
-  tag?: string;
   active?: boolean;
+  page?: number;
+  limit?: number;
 }
 
 export interface ExperienceListResponse {
   data: Experience[];
   total: number;
-  page?: number;
-  limit?: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export interface ExperienceResponse {

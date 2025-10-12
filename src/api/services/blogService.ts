@@ -5,17 +5,29 @@ import type {
   CreateBlogRequest,
   UpdateBlogRequest,
   BlogListParams,
+  BlogListResponse,
 } from '../types';
 
 class BlogService {
-  async getBlogs(params?: BlogListParams): Promise<Blog[]> {
-    const response = await apiClient.get<Blog[]>(ENDPOINTS.BLOGS, params);
-    return Array.isArray(response) ? response : [];
+  async getBlogs(params?: BlogListParams): Promise<BlogListResponse> {
+    const queryParams = {
+      page: 1,
+      limit: 10,
+      ...params,
+    };
+    const response = await apiClient.get<BlogListResponse>(ENDPOINTS.BLOGS, queryParams);
+    return response;
   }
 
-  async getActiveBlogs(params?: BlogListParams): Promise<Blog[]> {
-    const response = await apiClient.get<Blog[]>(ENDPOINTS.BLOGS, { ...params, active: true });
-    return Array.isArray(response) ? response : [];
+  async getActiveBlogs(params?: BlogListParams): Promise<BlogListResponse> {
+    const queryParams = {
+      page: 1,
+      limit: 10,
+      ...params,
+      active: true,
+    };
+    const response = await apiClient.get<BlogListResponse>(ENDPOINTS.BLOGS, queryParams);
+    return response;
   }
 
   async getBlogById(id: string): Promise<Blog> {

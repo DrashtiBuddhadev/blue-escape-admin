@@ -5,17 +5,28 @@ import type {
   CreateExperienceRequest,
   UpdateExperienceRequest,
   ExperienceListParams,
+  ExperienceListResponse,
 } from '../types';
 
 class ExperienceService {
-  async getExperiences(params?: ExperienceListParams): Promise<Experience[]> {
-    return await apiClient.get<Experience[]>(ENDPOINTS.EXPERIENCES, params);
+  async getExperiences(params?: ExperienceListParams): Promise<ExperienceListResponse> {
+    const queryParams = {
+      page: 1,
+      limit: 10,
+      ...params,
+    };
+    return await apiClient.get<ExperienceListResponse>(ENDPOINTS.EXPERIENCES, queryParams);
   }
 
-  async getActiveExperiences(params?: ExperienceListParams): Promise<Experience[]> {
-    const activeParams = { ...params, active: true };
-    console.log('Fetching active experiences with params:', activeParams);
-    return await apiClient.get<Experience[]>(ENDPOINTS.EXPERIENCES, activeParams);
+  async getActiveExperiences(params?: ExperienceListParams): Promise<ExperienceListResponse> {
+    const queryParams = {
+      page: 1,
+      limit: 10,
+      ...params,
+      active: true,
+    };
+    console.log('Fetching active experiences with params:', queryParams);
+    return await apiClient.get<ExperienceListResponse>(ENDPOINTS.EXPERIENCES, queryParams);
   }
 
   async getExperienceById(id: string): Promise<Experience> {

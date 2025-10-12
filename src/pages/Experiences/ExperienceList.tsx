@@ -6,6 +6,7 @@ import ExperienceCard from "../../components/travel/ExperienceCard";
 import EditExperienceModal from "../../components/travel/EditExperienceModal";
 import ViewExperienceModal from "../../components/travel/ViewExperienceModal";
 import PageMeta from "../../components/common/PageMeta";
+import Pagination from "../../components/common/Pagination";
 import { PlusIcon, GridIcon, ListIcon, BoxCubeIcon } from "../../icons";
 import { getContinents, getCountriesByContinent, getAllCountriesByContinent } from "../../utils/locationUtils";
 
@@ -19,6 +20,12 @@ const ExperienceList: React.FC = () => {
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedViewExperience, setSelectedViewExperience] = useState<Experience | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   const [continents] = useState(() => getContinents());
   const [availableCountries, setAvailableCountries] = useState<{value: string, label: string}[]>([]);
@@ -27,7 +34,7 @@ const ExperienceList: React.FC = () => {
 
   useEffect(() => {
     fetchExperiences();
-  }, [filters]);
+  }, [filters, currentPage, itemsPerPage]);
 
   useEffect(() => {
     // Update available countries when region filter changes
@@ -48,20 +55,20 @@ const ExperienceList: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Fetching experiences with filters:', filters);
-      // Only send region and tag filters to API, handle country client-side
-      const apiFilters = { region: filters.region, tag: filters.tag };
-      const data = await experienceService.getExperiences(apiFilters);
-      console.log('Fetched experiences:', data?.length, 'experiences');
-
-      // Apply client-side filtering for country (since backend doesn't support it yet)
-      let filteredData = data;
-      if (filters.country) {
-        filteredData = data.filter(exp => exp.country === filters.country);
-        console.log('After country filter:', filteredData.length, 'experiences');
-      }
-
-      setExperiences(filteredData);
+      
+      const apiFilters = {
+        ...filters,
+        page: currentPage,
+        limit: itemsPerPage,
+      };
+      
+      console.log('Fetching experiences with filters:', apiFilters);
+      const response = await experienceService.getExperiences(apiFilters);
+      console.log('Fetched experiences:', response.data?.length, 'experiences');
+      
+      setExperiences(response.data);
+      setTotalItems(response.total);
+      setTotalPages(response.totalPages);
     } catch (error: any) {
       console.error('Error fetching experiences:', error);
       console.error('Error details:', {
@@ -129,6 +136,7 @@ const ExperienceList: React.FC = () => {
 
   const handleFilterChange = (key: keyof ExperienceListParams, value: string) => {
     console.log('Filter change:', { key, value });
+    setCurrentPage(1); // Reset to first page when filters change
     const newFilters = {
       ...filters,
       [key]: value || undefined
@@ -138,7 +146,17 @@ const ExperienceList: React.FC = () => {
   };
 
   const clearFilters = () => {
+    setCurrentPage(1);
     setFilters({});
+  };
+  
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+  
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setCurrentPage(1);
+    setItemsPerPage(newItemsPerPage);
   };
 
   return (
@@ -339,13 +357,17 @@ const ExperienceList: React.FC = () => {
           </div>
         ) : null}
 
-        {/* Stats */}
-        {!loading && !error && experiences.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Showing {experiences.length} experience{experiences.length !== 1 ? 's' : ''}
-            </div>
-          </div>
+        {/* Pagination */}
+        {!loading && !error && totalPages > 1 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+            loading={loading}
+          />
         )}
 
         {/* Edit Modal */}

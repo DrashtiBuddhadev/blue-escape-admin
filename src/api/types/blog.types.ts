@@ -48,13 +48,16 @@ export interface BlogListParams {
   region?: string;
   country?: string;
   city?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface BlogListResponse {
   data: Blog[];
   total: number;
-  page?: number;
-  limit?: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export interface BlogResponse {
