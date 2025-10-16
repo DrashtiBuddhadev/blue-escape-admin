@@ -365,7 +365,7 @@ const EditCollectionContentModal: React.FC<EditCollectionContentModalProps> = ({
 
       console.log('Final PATCH payload:', JSON.stringify(minimalUpdateData, null, 2));
       console.log('Update URL will be:', `/collections/content/${content.id}`);
-      console.log('Full API URL will be:', `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'}/collections/content/${content.id}`);
+      console.log('Full API URL will be:', `${import.meta.env.VITE_API_BASE_URL || 'http://72.60.206.231:3000/api/v1'}/collections/content/${content.id}`);
 
       const updatedContent = await collectionService.updateCollectionContent(content.id, minimalUpdateData);
       console.log('Update response:', updatedContent);

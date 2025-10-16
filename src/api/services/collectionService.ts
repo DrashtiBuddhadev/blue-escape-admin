@@ -60,7 +60,8 @@ class CollectionService {
   }
 
   async getContentsByCollection(collectionId: string): Promise<CollectionContent[]> {
-    return await apiClient.get<CollectionContent[]>(ENDPOINTS.COLLECTION_CONTENTS_BY_COLLECTION(collectionId));
+    const response = await apiClient.get<CollectionContentListResponse>(ENDPOINTS.COLLECTION_CONTENTS_BY_COLLECTION(collectionId));
+    return response.data || [];
   }
 
   async createCollectionContent(data: CreateCollectionContentRequest): Promise<CollectionContent> {

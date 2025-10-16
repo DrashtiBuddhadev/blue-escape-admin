@@ -83,8 +83,8 @@ const CreateCollectionContent: React.FC = () => {
 
   const fetchCollections = async () => {
     try {
-      const data = await collectionService.getCollections();
-      setCollections(data);
+      const response = await collectionService.getCollections();
+      setCollections(response.data);
     } catch (error) {
       console.error("Error fetching collections:", error);
     }

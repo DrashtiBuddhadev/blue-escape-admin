@@ -1,7 +1,7 @@
 // API Configuration
 export const API_CONFIG = {
   // Base URL for the API
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1',
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://72.60.206.231:3000/api/v1',
 
   // Request timeout in milliseconds
   TIMEOUT: parseInt(import.meta.env.VITE_API_TIMEOUT || '10000', 10),
@@ -31,7 +31,7 @@ export const getApiConfig = () => {
     case 'production':
       return {
         ...API_CONFIG,
-        BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://api.blueescape.com/api/v1',
+        BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://72.60.206.231:3000/api/v1',
         ENABLE_LOGGING: false,
         TIMEOUT: 30000, // 30 seconds for production
       };
@@ -39,7 +39,7 @@ export const getApiConfig = () => {
     case 'staging':
       return {
         ...API_CONFIG,
-        BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://staging-api.blueescape.com/api/v1',
+        BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://72.60.206.231:3000/api/v1',
         ENABLE_LOGGING: true,
         TIMEOUT: 20000, // 20 seconds for staging
       };
