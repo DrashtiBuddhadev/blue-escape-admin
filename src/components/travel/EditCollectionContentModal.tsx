@@ -587,6 +587,9 @@ const EditCollectionContentModal: React.FC<EditCollectionContentModalProps> = ({
                     placeholder={!formData.country ? "Select Country First" : "Select City"}
                     disabled={!formData.country}
                     emptyMessage={!formData.country ? "Please select a country first" : "No cities available"}
+                    minSearchLength={2}
+                    maxResults={100}
+                    searchPrompt="Type at least 2 characters to search cities..."
                   />
                 </div>
               </div>
