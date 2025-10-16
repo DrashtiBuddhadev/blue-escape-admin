@@ -21,6 +21,7 @@ export interface CollectionListParams {
 }
 
 export interface CollectionContentListParams {
+  collection_id?: string;
   region?: string;
   country?: string;
   city?: string;

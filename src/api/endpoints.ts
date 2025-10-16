@@ -12,7 +12,7 @@ export const ENDPOINTS = {
   COLLECTION_CONTENT: '/collections/content',
   COLLECTION_CONTENT_ALL: '/collections/content/all',
   COLLECTION_CONTENT_BY_ID: (id: string) => `/collections/content/${id}`,
-  COLLECTION_CONTENTS_BY_COLLECTION: (id: string) => `/collections/${id}/content`,
+  COLLECTION_CONTENTS_BY_COLLECTION: (id: string) => `/collections/${id}/content/`,
 
   // Experiences
   EXPERIENCES: '/experiences',
